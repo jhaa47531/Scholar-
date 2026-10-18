@@ -45,6 +45,25 @@ export function getApiAuthToken(): string | null {
   return currentAuthToken;
 }
 
+export async function safeParseJson<T>(res: Response, fallback: T): Promise<T> {
+  try {
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      const text = await res.text().catch(() => '');
+      console.warn(
+        `[API] Non-JSON response received from ${res.url || 'endpoint'} (status ${res.status}, type "${contentType}"):`,
+        text.slice(0, 120)
+      );
+      return fallback;
+    }
+    const data = await res.json();
+    return data;
+  } catch (err) {
+    console.warn(`[API] JSON parse error:`, err);
+    return fallback;
+  }
+}
+
 export async function authFetch(
   url: string,
   options: RequestInit = {},
@@ -73,23 +92,47 @@ export async function authFetch(
     headers.set('Content-Type', 'application/json');
   }
 
-  return fetch(url, { ...options, headers });
+  try {
+    return await fetch(url, { ...options, headers });
+  } catch (fetchErr: any) {
+    console.warn(`[API] Network fetch error for ${url}:`, fetchErr.message);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        code: 'NETWORK_ERROR',
+        message: fetchErr.message || 'Network request failed',
+      }),
+      {
+        status: 503,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  }
 }
 
 export const api = {
   // Health
-  getHealth: async () => {
-    const res = await fetch('/api/health');
-    return res.json();
+  getHealth: async (): Promise<any> => {
+    try {
+      const res = await fetch('/api/health');
+      return await safeParseJson(res, { status: 'DEGRADED' });
+    } catch (err) {
+      console.warn('[API] getHealth fetch failed:', err);
+      return { status: 'OFFLINE' };
+    }
   },
 
   // Auth
-  getMe: async (explicitToken?: string | null) => {
-    const res = await authFetch('/api/auth/me', {}, explicitToken);
-    return res.json();
+  getMe: async (explicitToken?: string | null): Promise<{ success: boolean; data?: any; message?: string }> => {
+    try {
+      const res = await authFetch('/api/auth/me', {}, explicitToken);
+      return await safeParseJson<{ success: boolean; data?: any; message?: string }>(res, { success: false, message: 'Invalid server response' });
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
   },
 
-  loginAs: async (email: string) => {
+  loginAs: async (email: string): Promise<any> => {
     // 1. Try real Firebase token generation first
     try {
       const fbRes = await fetch('/api/auth/firebase-token', {
@@ -97,8 +140,8 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim() }),
       });
-      const fbData = await fbRes.json();
-      if (fbData.success && fbData.customToken) {
+      const fbData = await safeParseJson<any>(fbRes, null);
+      if (fbData && fbData.success && fbData.customToken) {
         const { auth } = await import('../config/firebase.ts');
         const { signInWithCustomToken } = await import('firebase/auth');
         if (auth) {
@@ -107,7 +150,7 @@ export const api = {
           setApiAuthToken(realIdToken);
           return { success: true, token: realIdToken, user: fbData.user };
         }
-      } else if (fbData.success && fbData.token) {
+      } else if (fbData && fbData.success && fbData.token) {
         setApiAuthToken(fbData.token);
         return fbData;
       }
@@ -116,126 +159,193 @@ export const api = {
     }
 
     // 2. Standard dev token fallback
-    const res = await fetch('/api/auth/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email.trim() }),
-    });
-    const devData = await res.json();
-    if (devData.success && devData.token) {
-      setApiAuthToken(devData.token);
+    try {
+      const res = await fetch('/api/auth/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const devData = await safeParseJson<any>(res, { success: false, message: 'Authentication server unavailable' });
+      if (devData.success && devData.token) {
+        setApiAuthToken(devData.token);
+      }
+      return devData;
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Login failed' };
     }
-    return devData;
   },
 
   // Academic Master
   getSessions: async (): Promise<AcademicSession[]> => {
-    const res = await authFetch('/api/academic/sessions');
-    const data = await res.json();
-    return data.success ? data.data : [];
+    try {
+      const res = await authFetch('/api/academic/sessions');
+      const data = await safeParseJson<{ success: boolean; data?: AcademicSession[] }>(res, { success: false, data: [] });
+      return data.success && Array.isArray(data.data) ? data.data : [];
+    } catch (err) {
+      console.warn('[API] getSessions error:', err);
+      return [];
+    }
   },
 
   getCourses: async (): Promise<CourseStructure[]> => {
-    const res = await authFetch('/api/academic/courses');
-    const data = await res.json();
-    return data.success ? data.data : [];
+    try {
+      const res = await authFetch('/api/academic/courses');
+      const data = await safeParseJson<{ success: boolean; data?: CourseStructure[] }>(res, { success: false, data: [] });
+      return data.success && Array.isArray(data.data) ? data.data : [];
+    } catch (err) {
+      console.warn('[API] getCourses error:', err);
+      return [];
+    }
   },
 
   getSubjects: async (courseId?: string, semester?: number): Promise<SubjectMaster[]> => {
-    const params = new URLSearchParams();
-    if (courseId) params.set('courseId', courseId);
-    if (semester !== undefined) params.set('semester', semester.toString());
-    const res = await authFetch(`/api/academic/subjects?${params.toString()}`);
-    const data = await res.json();
-    return data.success ? data.data : [];
+    try {
+      const params = new URLSearchParams();
+      if (courseId) params.set('courseId', courseId);
+      if (semester !== undefined) params.set('semester', semester.toString());
+      const res = await authFetch(`/api/academic/subjects?${params.toString()}`);
+      const data = await safeParseJson<{ success: boolean; data?: SubjectMaster[] }>(res, { success: false, data: [] });
+      return data.success && Array.isArray(data.data) ? data.data : [];
+    } catch (err) {
+      console.warn('[API] getSubjects error:', err);
+      return [];
+    }
   },
 
   getStudents: async (courseId?: string, semester?: number): Promise<StudentProfile[]> => {
-    const params = new URLSearchParams();
-    if (courseId) params.set('courseId', courseId);
-    if (semester !== undefined) params.set('semester', semester.toString());
-    const res = await authFetch(`/api/academic/students?${params.toString()}`);
-    const data = await res.json();
-    return data.success ? data.data : [];
+    try {
+      const params = new URLSearchParams();
+      if (courseId) params.set('courseId', courseId);
+      if (semester !== undefined) params.set('semester', semester.toString());
+      const res = await authFetch(`/api/academic/students?${params.toString()}`);
+      const data = await safeParseJson<{ success: boolean; data?: StudentProfile[] }>(res, { success: false, data: [] });
+      return data.success && Array.isArray(data.data) ? data.data : [];
+    } catch (err) {
+      console.warn('[API] getStudents error:', err);
+      return [];
+    }
   },
 
   getTeachers: async (): Promise<TeacherProfile[]> => {
-    const res = await authFetch('/api/academic/teachers');
-    const data = await res.json();
-    return data.success ? data.data : [];
+    try {
+      const res = await authFetch('/api/academic/teachers');
+      const data = await safeParseJson<{ success: boolean; data?: TeacherProfile[] }>(res, { success: false, data: [] });
+      return data.success && Array.isArray(data.data) ? data.data : [];
+    } catch (err) {
+      console.warn('[API] getTeachers error:', err);
+      return [];
+    }
   },
 
   getAssignments: async (teacherId?: string, sessionId?: string): Promise<TeacherAssignment[]> => {
-    const params = new URLSearchParams();
-    if (teacherId) params.set('teacherId', teacherId);
-    if (sessionId) params.set('sessionId', sessionId);
-    const res = await authFetch(`/api/academic/assignments?${params.toString()}`);
-    const data = await res.json();
-    return data.success ? data.data : [];
+    try {
+      const params = new URLSearchParams();
+      if (teacherId) params.set('teacherId', teacherId);
+      if (sessionId) params.set('sessionId', sessionId);
+      const res = await authFetch(`/api/academic/assignments?${params.toString()}`);
+      const data = await safeParseJson<{ success: boolean; data?: TeacherAssignment[] }>(res, { success: false, data: [] });
+      return data.success && Array.isArray(data.data) ? data.data : [];
+    } catch (err) {
+      console.warn('[API] getAssignments error:', err);
+      return [];
+    }
   },
 
-  createAssignment: async (payload: { teacherId: string; subjectId: string; sessionId: string; semester: number }) => {
-    const res = await authFetch('/api/academic/assignments', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
-    return res.json();
+  createAssignment: async (payload: { teacherId: string; subjectId: string; sessionId: string; semester: number }): Promise<{ success: boolean; data?: any; message?: string }> => {
+    try {
+      const res = await authFetch('/api/academic/assignments', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      return await safeParseJson<{ success: boolean; data?: any; message?: string }>(res, { success: false, message: 'Server did not return a valid response' });
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
   },
 
   // Assessments
   getConfigs: async (sessionId?: string, courseId?: string): Promise<SessionalConfig[]> => {
-    const params = new URLSearchParams();
-    if (sessionId) params.set('sessionId', sessionId);
-    if (courseId) params.set('courseId', courseId);
-    const res = await authFetch(`/api/assessments/configs?${params.toString()}`);
-    const data = await res.json();
-    return data.success ? data.data : [];
+    try {
+      const params = new URLSearchParams();
+      if (sessionId) params.set('sessionId', sessionId);
+      if (courseId) params.set('courseId', courseId);
+      const res = await authFetch(`/api/assessments/configs?${params.toString()}`);
+      const data = await safeParseJson<{ success: boolean; data?: SessionalConfig[] }>(res, { success: false, data: [] });
+      return data.success && Array.isArray(data.data) ? data.data : [];
+    } catch (err) {
+      console.warn('[API] getConfigs error:', err);
+      return [];
+    }
   },
 
-  saveConfig: async (payload: Partial<SessionalConfig>) => {
-    const res = await authFetch('/api/assessments/configs', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
-    return res.json();
+  saveConfig: async (payload: Partial<SessionalConfig>): Promise<{ success: boolean; data?: any; message?: string }> => {
+    try {
+      const res = await authFetch('/api/assessments/configs', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      return await safeParseJson<{ success: boolean; data?: any; message?: string }>(res, { success: false, message: 'Failed to save configuration' });
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
   },
 
-  getTeacherSheet: async (subjectId: string, sessionId: string, sessionalNumber: number) => {
-    const url = `/api/assessments/teacher/subject-sheet?subjectId=${subjectId}&sessionId=${sessionId}&sessionalNumber=${sessionalNumber}`;
-    const res = await authFetch(url);
-    return res.json();
+  getTeacherSheet: async (subjectId: string, sessionId: string, sessionalNumber: number): Promise<{ success: boolean; data?: any; message?: string }> => {
+    try {
+      const url = `/api/assessments/teacher/subject-sheet?subjectId=${subjectId}&sessionId=${sessionId}&sessionalNumber=${sessionalNumber}`;
+      const res = await authFetch(url);
+      return await safeParseJson<{ success: boolean; data?: any; message?: string }>(res, { success: false, message: 'Failed to load teacher sheet' });
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
   },
 
-  saveDraft: async (assessment: AssessmentRecord) => {
-    const res = await authFetch('/api/assessments/draft', {
-      method: 'POST',
-      body: JSON.stringify({ assessment }),
-    });
-    return res.json();
+  saveDraft: async (assessment: AssessmentRecord): Promise<{ success: boolean; data?: any; message?: string }> => {
+    try {
+      const res = await authFetch('/api/assessments/draft', {
+        method: 'POST',
+        body: JSON.stringify({ assessment }),
+      });
+      return await safeParseJson<{ success: boolean; data?: any; message?: string }>(res, { success: false, message: 'Failed to save draft' });
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
   },
 
-  finalSubmitBatch: async (assessments: AssessmentRecord[]) => {
-    const res = await authFetch('/api/assessments/final-submit', {
-      method: 'POST',
-      body: JSON.stringify({ assessments }),
-    });
-    return res.json();
+  finalSubmitBatch: async (assessments: AssessmentRecord[]): Promise<{ success: boolean; data?: any; message?: string }> => {
+    try {
+      const res = await authFetch('/api/assessments/final-submit', {
+        method: 'POST',
+        body: JSON.stringify({ assessments }),
+      });
+      return await safeParseJson<{ success: boolean; data?: any; message?: string }>(res, { success: false, message: 'Failed to finalize submission' });
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
   },
 
-  correctAssessment: async (assessmentId: string, updates: Partial<AssessmentRecord>, correctionReason: string) => {
-    const res = await authFetch('/api/assessments/correction', {
-      method: 'POST',
-      body: JSON.stringify({ assessmentId, updates, correctionReason }),
-    });
-    return res.json();
+  correctAssessment: async (assessmentId: string, updates: Partial<AssessmentRecord>, correctionReason: string): Promise<{ success: boolean; data?: any; message?: string }> => {
+    try {
+      const res = await authFetch('/api/assessments/correction', {
+        method: 'POST',
+        body: JSON.stringify({ assessmentId, updates, correctionReason }),
+      });
+      return await safeParseJson<{ success: boolean; data?: any; message?: string }>(res, { success: false, message: 'Failed to submit correction' });
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
   },
 
-  getStudentMarks: async (sessionId: string, sessionalNumber?: number, studentId?: string) => {
-    const params = new URLSearchParams({ sessionId });
-    if (sessionalNumber !== undefined) params.set('sessionalNumber', sessionalNumber.toString());
-    if (studentId) params.set('studentId', studentId);
-    const res = await authFetch(`/api/assessments/student/marks?${params.toString()}`);
-    return res.json();
+  getStudentMarks: async (sessionId: string, sessionalNumber?: number, studentId?: string): Promise<{ success: boolean; data?: any[]; message?: string }> => {
+    try {
+      const params = new URLSearchParams({ sessionId });
+      if (sessionalNumber !== undefined) params.set('sessionalNumber', sessionalNumber.toString());
+      if (studentId) params.set('studentId', studentId);
+      const res = await authFetch(`/api/assessments/student/marks?${params.toString()}`);
+      return await safeParseJson<{ success: boolean; data?: any[]; message?: string }>(res, { success: false, data: [] });
+    } catch (err: any) {
+      return { success: false, data: [], message: err.message };
+    }
   },
 
   // Reports
@@ -244,36 +354,53 @@ export const api = {
     sessionalNumber: number,
     studentId?: string
   ): Promise<{ success: boolean; data?: SessionalOverallReport; message?: string }> => {
-    const params = new URLSearchParams({
-      sessionId,
-      sessionalNumber: sessionalNumber.toString(),
-    });
-    if (studentId) params.set('studentId', studentId);
-    const res = await authFetch(`/api/reports/sessional?${params.toString()}`);
-    return res.json();
+    try {
+      const params = new URLSearchParams({
+        sessionId,
+        sessionalNumber: sessionalNumber.toString(),
+      });
+      if (studentId) params.set('studentId', studentId);
+      const res = await authFetch(`/api/reports/sessional?${params.toString()}`);
+      return await safeParseJson<{ success: boolean; data?: SessionalOverallReport; message?: string }>(res, { success: false, message: 'Failed to load report' });
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
   },
 
-  getComparisonReport: async (sessionId: string, studentId?: string) => {
-    const params = new URLSearchParams({ sessionId });
-    if (studentId) params.set('studentId', studentId);
-    const res = await authFetch(`/api/reports/comparison?${params.toString()}`);
-    return res.json();
+  getComparisonReport: async (sessionId: string, studentId?: string): Promise<{ success: boolean; data?: any; message?: string }> => {
+    try {
+      const params = new URLSearchParams({ sessionId });
+      if (studentId) params.set('studentId', studentId);
+      const res = await authFetch(`/api/reports/comparison?${params.toString()}`);
+      return await safeParseJson<{ success: boolean; data?: any; message?: string }>(res, { success: false, message: 'Failed to load comparison report' });
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
   },
 
   // Audit
   getAuditLogs: async (entityType?: string, entityId?: string, limit = 50): Promise<AuditLogEntry[]> => {
-    const params = new URLSearchParams({ limit: limit.toString() });
-    if (entityType) params.set('entityType', entityType);
-    if (entityId) params.set('entityId', entityId);
-    const res = await authFetch(`/api/audit/logs?${params.toString()}`);
-    const data = await res.json();
-    return data.success ? data.data : [];
+    try {
+      const params = new URLSearchParams({ limit: limit.toString() });
+      if (entityType) params.set('entityType', entityType);
+      if (entityId) params.set('entityId', entityId);
+      const res = await authFetch(`/api/audit/logs?${params.toString()}`);
+      const data = await safeParseJson<{ success: boolean; data?: AuditLogEntry[] }>(res, { success: false, data: [] });
+      return data.success && Array.isArray(data.data) ? data.data : [];
+    } catch (err) {
+      console.warn('[API] getAuditLogs error:', err);
+      return [];
+    }
   },
 
   // Migration
-  getMigrationOverview: async () => {
-    const res = await authFetch('/api/migration/overview');
-    return res.json();
+  getMigrationOverview: async (): Promise<{ success: boolean; data?: any; message?: string }> => {
+    try {
+      const res = await authFetch('/api/migration/overview');
+      return await safeParseJson<{ success: boolean; data?: any; message?: string }>(res, { success: false, message: 'Failed to load migration status' });
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
   },
 
   exportMigrationJson: async () => {

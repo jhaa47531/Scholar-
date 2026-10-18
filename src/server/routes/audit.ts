@@ -5,8 +5,8 @@ import { UserRole } from '../../types/domain.ts';
 
 export const auditRouter = Router();
 
-// Audit log inspection strictly restricted to ADMIN
-auditRouter.get('/logs', requireAuth, requireRole([UserRole.ADMIN]), async (req: Request, res: Response) => {
+// Audit log inspection permitted for ADMIN and TEACHER (Student strictly forbidden)
+auditRouter.get('/logs', requireAuth, requireRole([UserRole.ADMIN, UserRole.TEACHER]), async (req: Request, res: Response) => {
   const entityType = req.query.entityType as string | undefined;
   const entityId = req.query.entityId as string | undefined;
   const limitStr = req.query.limit as string | undefined;

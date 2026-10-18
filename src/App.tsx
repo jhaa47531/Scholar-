@@ -216,57 +216,75 @@ export default function App() {
   }, [currentUser, selectedSessionId]);
 
   const fetchMasterData = async () => {
+    if (!currentUser) return;
     try {
-      const [health, sess, crs, subs, aud] = await Promise.all([
+      const [health, sess, crs, subs] = await Promise.all([
         api.getHealth(),
         api.getSessions(),
         api.getCourses(),
         api.getSubjects(),
-        api.getAuditLogs(),
       ]);
 
-      setHealthStatus(health);
+      if (health) setHealthStatus(health);
       if (sess && sess.length > 0) {
         setSessions(sess);
-        if (!selectedSessionId) setSelectedSessionId(sess[0].id);
+        if (!selectedSessionId || !sess.some((s) => s.id === selectedSessionId)) {
+          setSelectedSessionId(sess[0].id);
+        }
       }
-      setCourses(crs);
-      setSubjects(subs);
-      setAuditLogs(aud);
+      if (crs) setCourses(crs);
+      if (subs) setSubjects(subs);
 
-      // Role-specific data loading
-      if (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.TEACHER) {
+      const targetSessionId = selectedSessionId || (sess && sess.length > 0 ? sess[0].id : 'sess_2025_26');
+
+      // Admin Data Loading
+      if (currentUser.role === UserRole.ADMIN) {
+        const [fac, stus, asg, cfg, aud] = await Promise.all([
+          api.getTeachers(),
+          api.getStudents(),
+          api.getAssignments(undefined, targetSessionId),
+          api.getConfigs(targetSessionId),
+          api.getAuditLogs(),
+        ]);
+        if (fac) setFaculty(fac);
+        if (stus) setStudents(stus);
+        if (asg) setAssignments(asg);
+        if (cfg) setConfigs(cfg);
+        if (aud) setAuditLogs(aud);
+      } else if (currentUser.role === UserRole.TEACHER) {
+        // Teacher Data Loading
         const [fac, stus, asg, cfg] = await Promise.all([
           api.getTeachers(),
           api.getStudents(),
-          api.getAssignments(undefined, selectedSessionId),
-          api.getConfigs(selectedSessionId),
+          api.getAssignments(currentUser.teacherProfile?.id, targetSessionId),
+          api.getConfigs(targetSessionId),
         ]);
-        setFaculty(fac);
-        setStudents(stus);
-        setAssignments(asg);
-        setConfigs(cfg);
-      }
-
-      if (currentUser.role === UserRole.STUDENT) {
-        loadStudentPortalData();
+        if (fac) setFaculty(fac);
+        if (stus) setStudents(stus);
+        if (asg) setAssignments(asg);
+        if (cfg) setConfigs(cfg);
+      } else if (currentUser.role === UserRole.STUDENT) {
+        // Student Portal Data Loading
+        await loadStudentPortalData(targetSessionId);
       }
     } catch (err) {
       console.error('Error fetching master records:', err);
     }
   };
 
-  const loadStudentPortalData = async () => {
+  const loadStudentPortalData = async (sessionIdToUse?: string) => {
+    const sId = sessionIdToUse || selectedSessionId;
+    if (!sId) return;
     try {
       const [marksRes, repRes, compRes] = await Promise.all([
-        api.getStudentMarks(selectedSessionId),
-        api.getSessionalReport(selectedSessionId, 1),
-        api.getComparisonReport(selectedSessionId),
+        api.getStudentMarks(sId),
+        api.getSessionalReport(sId, 1),
+        api.getComparisonReport(sId),
       ]);
 
-      if (marksRes.success) setStudentMarksData(marksRes.data);
-      if (repRes.success) setStudentReport(repRes.data);
-      if (compRes.success) setStudentComparison(compRes.data);
+      if (marksRes?.success && marksRes.data) setStudentMarksData(marksRes.data);
+      if (repRes?.success && repRes.data) setStudentReport(repRes.data);
+      if (compRes?.success && compRes.data) setStudentComparison(compRes.data);
     } catch (err) {
       console.error('Error loading student portal data:', err);
     }
