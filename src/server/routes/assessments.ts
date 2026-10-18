@@ -171,12 +171,23 @@ assessmentRouter.post(
       }
     }
 
-    const saved = await activeAssessmentRepo.saveDraft({
-      ...assessment,
-      submittingTeacherId: teacherId,
-    });
+    try {
+      const saved = await activeAssessmentRepo.saveDraft({
+        ...assessment,
+        submittingTeacherId: teacherId,
+      });
 
-    res.json({ success: true, message: 'Draft saved securely. Invisible to students.', data: saved });
+      res.json({ success: true, message: 'Draft saved securely. Invisible to students.', data: saved });
+    } catch (err: any) {
+      if (err.message && err.message.includes('FINALIZED_ASSESSMENT_LOCKED')) {
+        return res.status(409).json({
+          success: false,
+          code: 'FINALIZED_ASSESSMENT_LOCKED',
+          message: err.message,
+        });
+      }
+      return res.status(500).json({ success: false, message: err.message });
+    }
   }
 );
 
@@ -287,5 +298,85 @@ assessmentRouter.get(
       success: true,
       data: enriched,
     });
+  }
+);
+
+// Authorized Post-Submission Correction (ADMIN or Assigned TEACHER)
+assessmentRouter.post(
+  '/correction',
+  requireAuth,
+  requireRole([UserRole.ADMIN, UserRole.TEACHER]),
+  async (req: Request, res: Response) => {
+    const { assessmentId, updates, correctionReason } = req.body;
+
+    if (
+      !assessmentId ||
+      !updates ||
+      typeof updates !== 'object' ||
+      !correctionReason ||
+      typeof correctionReason !== 'string' ||
+      correctionReason.trim().length === 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'assessmentId, updates object, and a non-empty correctionReason are required for corrections.',
+      });
+    }
+
+    const authorizedBy = req.user!.email;
+
+    try {
+      // Validate teacher assignment boundary if initiated by a teacher
+      if (req.user!.role === UserRole.TEACHER && updates.subjectId && updates.sessionId) {
+        const isAssigned = await activeAcademicRepo.isTeacherAssignedToSubject(
+          req.user!.teacherProfile!.id,
+          updates.subjectId,
+          updates.sessionId
+        );
+        if (!isAssigned) {
+          return res.status(403).json({
+            success: false,
+            code: 'UNAUTHORIZED_SUBJECT_ACCESS',
+            message: 'Forbidden: You are not assigned to this subject.',
+          });
+        }
+      }
+
+      // Validate marks bounds if obtainedMarks is updated
+      if (updates.obtainedMarks !== undefined && updates.obtainedMarks !== null) {
+        if (updates.obtainedMarks < 0 || (updates.maxMarks && updates.obtainedMarks > updates.maxMarks)) {
+          return res.status(400).json({
+            success: false,
+            message: `Invalid obtained marks: must be between 0 and maximum marks.`,
+          });
+        }
+      }
+
+      const corrected = await activeAssessmentRepo.updateAssessmentWithCorrection(
+        assessmentId,
+        updates,
+        correctionReason.trim(),
+        authorizedBy
+      );
+
+      // Record immutable audit log
+      await activeAuditRepo.recordAudit({
+        entityType: 'ASSESSMENT',
+        entityId: assessmentId,
+        action: 'CORRECTION',
+        actorId: authorizedBy,
+        actorRole: req.user!.role,
+        reason: correctionReason.trim(),
+        newData: updates as Record<string, unknown>,
+      });
+
+      res.json({
+        success: true,
+        message: 'Assessment correction applied and recorded in immutable audit log.',
+        data: corrected,
+      });
+    } catch (err: any) {
+      return res.status(400).json({ success: false, message: err.message });
+    }
   }
 );

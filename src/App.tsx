@@ -216,12 +216,31 @@ export default function App() {
   };
 
   const fetchMigrationOverview = async () => {
+    if (currentUser?.role !== UserRole.ADMIN) return;
     try {
       const res = await authFetch('/api/migration/overview');
       const data = await res.json();
       if (data.success) setMigrationData(data.data);
     } catch (err) {
       console.error('Failed migration overview fetch:', err);
+    }
+  };
+
+  const handleExportJson = async () => {
+    try {
+      const res = await authFetch('/api/migration/export-json');
+      if (!res.ok) throw new Error('Export download failed');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'spis_firestore_export.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export JSON:', err);
     }
   };
 
@@ -1283,14 +1302,13 @@ export default function App() {
                 </p>
               </div>
 
-              <a
-                href="/api/migration/export-json"
-                download="spis_firestore_export.json"
-                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 flex items-center gap-2 transition-all w-fit"
+              <button
+                onClick={handleExportJson}
+                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 flex items-center gap-2 transition-all w-fit cursor-pointer"
               >
                 <Download className="w-4 h-4 text-amber-400" />
                 Export Checksummed JSON
-              </a>
+              </button>
             </div>
 
             {migrationData && (

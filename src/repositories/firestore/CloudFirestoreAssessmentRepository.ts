@@ -205,13 +205,27 @@ export class CloudFirestoreAssessmentRepository implements IAssessmentRepository
   }
 
   async saveDraft(assessment: AssessmentRecord): Promise<AssessmentRecord> {
-    const updated: AssessmentRecord = {
-      ...assessment,
-      submissionStatus: SubmissionStatus.DRAFT,
-      updatedAt: new Date().toISOString(),
-    };
-    await this.db.collection('assessments').doc(updated.id).set(updated);
-    return updated;
+    const docRef = this.db.collection('assessments').doc(assessment.id);
+
+    return await this.db.runTransaction(async (transaction) => {
+      const existingDoc = await transaction.get(docRef);
+      if (existingDoc.exists) {
+        const existingData = existingDoc.data() as AssessmentRecord;
+        if (existingData.submissionStatus === SubmissionStatus.FINAL_SUBMITTED) {
+          throw new Error(
+            'FINALIZED_ASSESSMENT_LOCKED: Cannot overwrite or downgrade an already finalized assessment via draft save. Use the authorized correction workflow instead.'
+          );
+        }
+      }
+
+      const updated: AssessmentRecord = {
+        ...assessment,
+        submissionStatus: SubmissionStatus.DRAFT,
+        updatedAt: new Date().toISOString(),
+      };
+      transaction.set(docRef, updated);
+      return updated;
+    });
   }
 
   async finalSubmitBatch(teacherId: string, records: AssessmentRecord[]): Promise<AssessmentRecord[]> {
@@ -242,21 +256,24 @@ export class CloudFirestoreAssessmentRepository implements IAssessmentRepository
     authorizedBy: string
   ): Promise<AssessmentRecord> {
     const docRef = this.db.collection('assessments').doc(assessmentId);
-    const doc = await docRef.get();
-    if (!doc.exists) {
-      throw new Error(`Assessment with ID ${assessmentId} not found in Firestore`);
-    }
 
-    const existing = doc.data() as AssessmentRecord;
-    const updated: AssessmentRecord = {
-      ...existing,
-      ...updates,
-      correctionReason,
-      correctionAuthorizedBy: authorizedBy,
-      updatedAt: new Date().toISOString(),
-    };
+    return await this.db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(docRef);
+      if (!doc.exists) {
+        throw new Error(`Assessment with ID ${assessmentId} not found in Firestore`);
+      }
 
-    await docRef.set(updated);
-    return updated;
+      const existing = doc.data() as AssessmentRecord;
+      const updated: AssessmentRecord = {
+        ...existing,
+        ...updates,
+        correctionReason,
+        correctionAuthorizedBy: authorizedBy,
+        updatedAt: new Date().toISOString(),
+      };
+
+      transaction.set(docRef, updated);
+      return updated;
+    });
   }
 }

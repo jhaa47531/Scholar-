@@ -1,5 +1,5 @@
 import { Request, Response, Router } from 'express';
-import { getFirebaseAdminApp } from '../auth/firebaseAdmin.ts';
+import { getFirebaseAdminApp, verifyFirestoreProbe } from '../auth/firebaseAdmin.ts';
 import { isLiveFirestoreActive } from '../../repositories/index.ts';
 
 export const healthRouter = Router();
@@ -7,6 +7,15 @@ export const healthRouter = Router();
 healthRouter.get('/', (req: Request, res: Response) => {
   const adminApp = getFirebaseAdminApp();
   const liveFirestore = isLiveFirestoreActive();
+
+  const isClientEmailConfigured = Boolean(
+    process.env.FIREBASE_CLIENT_EMAIL &&
+    !process.env.FIREBASE_CLIENT_EMAIL.includes('xxxxx@your-app-id')
+  );
+  const isPrivateKeyConfigured = Boolean(
+    process.env.FIREBASE_PRIVATE_KEY &&
+    !process.env.FIREBASE_PRIVATE_KEY.includes('...')
+  );
 
   const healthData = {
     status: 'HEALTHY',
@@ -18,10 +27,10 @@ healthRouter.get('/', (req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
     firebaseAdmin: {
       isInitialized: Boolean(adminApp),
-      projectId: process.env.FIREBASE_PROJECT_ID || 'scholarsense-f29bb',
-      clientEmailConfigured: Boolean(process.env.FIREBASE_CLIENT_EMAIL),
-      privateKeyConfigured: Boolean(process.env.FIREBASE_PRIVATE_KEY),
-      authenticationStatus: 'READY (Admin SDK Verified)',
+      projectId: process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || 'scholarsense-f29bb',
+      clientEmailConfigured: isClientEmailConfigured,
+      privateKeyConfigured: isPrivateKeyConfigured,
+      authenticationStatus: adminApp ? 'READY (Admin SDK Verified)' : 'MOCK_TOKEN_FALLBACK',
       firestoreStatus: liveFirestore ? 'CONNECTED_AND_ACTIVE' : 'FALLBACK_IN_MEMORY',
     },
     database: {
@@ -53,4 +62,12 @@ healthRouter.get('/', (req: Request, res: Response) => {
   };
 
   res.status(200).json(healthData);
+});
+
+/**
+ * Harmless connectivity probe: writes, reads, and deletes a single probe document.
+ */
+healthRouter.get('/probe', async (req: Request, res: Response) => {
+  const probeResult = await verifyFirestoreProbe();
+  res.status(probeResult.success ? 200 : 503).json(probeResult);
 });

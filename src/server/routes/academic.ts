@@ -26,14 +26,19 @@ academicRouter.get('/subjects', requireAuth, async (req: Request, res: Response)
   res.json({ success: true, data: subjects });
 });
 
-// Students
-academicRouter.get('/students', requireAuth, async (req: Request, res: Response) => {
-  const courseId = req.query.courseId as string | undefined;
-  const semesterStr = req.query.semester as string | undefined;
-  const semester = semesterStr ? parseInt(semesterStr, 10) : undefined;
-  const students = await activeAcademicRepo.getStudents(courseId, semester);
-  res.json({ success: true, data: students });
-});
+// Students (Restricted to Faculty and Admins)
+academicRouter.get(
+  '/students',
+  requireAuth,
+  requireRole([UserRole.ADMIN, UserRole.TEACHER]),
+  async (req: Request, res: Response) => {
+    const courseId = req.query.courseId as string | undefined;
+    const semesterStr = req.query.semester as string | undefined;
+    const semester = semesterStr ? parseInt(semesterStr, 10) : undefined;
+    const students = await activeAcademicRepo.getStudents(courseId, semester);
+    res.json({ success: true, data: students });
+  }
+);
 
 // Teachers
 academicRouter.get('/teachers', requireAuth, async (req: Request, res: Response) => {

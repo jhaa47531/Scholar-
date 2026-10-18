@@ -1,9 +1,12 @@
 import { Request, Response, Router } from 'express';
 import { activeAcademicRepo, activeAssessmentRepo, activeAuditRepo } from '../../repositories/index.ts';
+import { requireAuth, requireRole } from '../middleware/auth.ts';
+import { UserRole } from '../../types/domain.ts';
 
 export const migrationRouter = Router();
 
-migrationRouter.get('/overview', async (req: Request, res: Response) => {
+// Migration overview strictly restricted to ADMIN
+migrationRouter.get('/overview', requireAuth, requireRole([UserRole.ADMIN]), async (req: Request, res: Response) => {
   const courses = await activeAcademicRepo.getCourses();
   const sessions = await activeAcademicRepo.getSessions();
   const subjects = await activeAcademicRepo.getSubjects();
@@ -55,7 +58,8 @@ migrationRouter.get('/overview', async (req: Request, res: Response) => {
   });
 });
 
-migrationRouter.get('/export-json', async (req: Request, res: Response) => {
+// Full database JSON export strictly restricted to ADMIN
+migrationRouter.get('/export-json', requireAuth, requireRole([UserRole.ADMIN]), async (req: Request, res: Response) => {
   const [courses, sessions, subjects, students, teachers, assignments, configs, auditLogs] = await Promise.all([
     activeAcademicRepo.getCourses(),
     activeAcademicRepo.getSessions(),

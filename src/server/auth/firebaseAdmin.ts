@@ -19,11 +19,29 @@ export function initializeFirebaseAdmin(): App | null {
     return firebaseAdminApp;
   }
 
-  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   let privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
+  const isPlaceholder =
+    !projectId ||
+    projectId === 'your-app-id' ||
+    !clientEmail ||
+    clientEmail.includes('xxxxx@your-app-id') ||
+    !privateKey ||
+    privateKey.includes('...\n-----END') ||
+    privateKey.includes('...');
+
+  if (isPlaceholder) {
+    console.log('[Firebase Admin] Notice: Firebase credentials are placeholder or unconfigured. Operating in decoupled In-Memory fallback mode.');
+    return null;
+  }
+
   if (privateKey) {
+    privateKey = privateKey.trim();
+    if ((privateKey.startsWith('"') && privateKey.endsWith('"')) || (privateKey.startsWith("'") && privateKey.endsWith("'"))) {
+      privateKey = privateKey.slice(1, -1).trim();
+    }
     // Handle both Base64-encoded strings and newline-escaped strings
     if (privateKey.startsWith('LS0t')) {
       privateKey = Buffer.from(privateKey, 'base64').toString('utf-8');
@@ -61,6 +79,79 @@ export function getFirestoreDb(): Firestore | null {
     firebaseFirestoreDb = getFirestore(firebaseAdminApp);
   }
   return firebaseFirestoreDb;
+}
+
+/**
+ * Executes a harmless write, read, and delete test probe on Cloud Firestore.
+ * Leaves zero footprint and verifies end-to-end read/write permissions.
+ */
+export async function verifyFirestoreProbe(): Promise<{
+  success: boolean;
+  stage: 'CREDENTIALS' | 'INITIALIZE' | 'WRITE' | 'READ' | 'DELETE' | 'COMPLETED';
+  latencyMs: number;
+  message: string;
+  details?: Record<string, any>;
+}> {
+  const startTime = Date.now();
+  const db = getFirestoreDb();
+  if (!db) {
+    return {
+      success: false,
+      stage: 'INITIALIZE',
+      latencyMs: Date.now() - startTime,
+      message:
+        'Firestore instance is currently unavailable because Firebase Admin credentials are placeholders or not configured. Set valid FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, and FIREBASE_PRIVATE_KEY in environment/secrets.',
+    };
+  }
+
+  const probeDocRef = db.collection('_spis_connectivity_probe').doc(`probe_${Date.now()}`);
+  const probePayload = {
+    probeId: probeDocRef.id,
+    timestamp: new Date().toISOString(),
+    purpose: 'connectivity_verification',
+    system: 'ScholarSense SPIS',
+  };
+
+  try {
+    // 1. Harmless Write
+    await probeDocRef.set(probePayload);
+
+    // 2. Read back
+    const snapshot = await probeDocRef.get();
+    if (!snapshot.exists || snapshot.data()?.probeId !== probePayload.probeId) {
+      return {
+        success: false,
+        stage: 'READ',
+        latencyMs: Date.now() - startTime,
+        message: 'Probe document was written, but read-back verification failed or mismatched.',
+      };
+    }
+
+    // 3. Delete to leave zero footprint
+    await probeDocRef.delete();
+
+    return {
+      success: true,
+      stage: 'COMPLETED',
+      latencyMs: Date.now() - startTime,
+      message: 'Firestore write, read, and delete operations successfully executed and verified with zero footprint.',
+      details: {
+        docId: probeDocRef.id,
+        roundtripMs: Date.now() - startTime,
+      },
+    };
+  } catch (err: any) {
+    try {
+      await probeDocRef.delete();
+    } catch (_) {}
+
+    return {
+      success: false,
+      stage: 'WRITE',
+      latencyMs: Date.now() - startTime,
+      message: `Firestore operation failed: ${err.message}`,
+    };
+  }
 }
 
 export interface AuthenticatedUserContext {

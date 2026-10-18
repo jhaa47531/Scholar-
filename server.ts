@@ -1,15 +1,38 @@
-import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { createServer as createViteServer } from 'vite';
-import { createApp } from './src/server/app.ts';
-import { initializeFirebaseAdmin } from './src/server/auth/firebaseAdmin.ts';
-import { initializeRepositories } from './src/repositories/index.ts';
+import { spawn } from 'node:child_process';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const isTsxLoaded =
+  process.execArgv.some((arg) => arg.includes('tsx')) ||
+  process.env.__TSX_ACTIVE === '1' ||
+  typeof (process as any)[Symbol.for('tsx')] !== 'undefined';
 
-async function startServer() {
+if (!isTsxLoaded) {
+  const child = spawn(process.execPath, ['--import', 'tsx', ...process.argv.slice(1)], {
+    env: { ...process.env, __TSX_ACTIVE: '1' },
+    stdio: 'inherit',
+  });
+  child.on('exit', (code, signal) => {
+    if (signal) {
+      process.kill(process.pid, signal);
+    } else {
+      process.exit(code ?? 0);
+    }
+  });
+} else {
+  runServer();
+}
+
+async function runServer() {
+  const express = (await import('express')).default;
+  const path = (await import('path')).default;
+  const { fileURLToPath } = await import('url');
+  const { createServer: createViteServer } = await import('vite');
+  const { createApp } = await import('./src/server/app.ts');
+  const { initializeFirebaseAdmin } = await import('./src/server/auth/firebaseAdmin.ts');
+  const { initializeRepositories } = await import('./src/repositories/index.ts');
+
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+
   // 1. Initialize Firebase Admin if credentials configured
   initializeFirebaseAdmin();
 
@@ -42,7 +65,3 @@ async function startServer() {
   });
 }
 
-startServer().catch((err) => {
-  console.error('[SPIS Server Error] Failed to start:', err);
-  process.exit(1);
-});

@@ -182,6 +182,12 @@ export class AssessmentRepository implements IAssessmentRepository {
   }
 
   async saveDraft(assessment: AssessmentRecord): Promise<AssessmentRecord> {
+    const existing = this.assessments.get(assessment.id);
+    if (existing && existing.submissionStatus === SubmissionStatus.FINAL_SUBMITTED) {
+      throw new Error(
+        'FINALIZED_ASSESSMENT_LOCKED: Cannot overwrite or downgrade an already finalized assessment via draft save. Use the authorized correction workflow instead.'
+      );
+    }
     const updated: AssessmentRecord = {
       ...assessment,
       submissionStatus: SubmissionStatus.DRAFT,
