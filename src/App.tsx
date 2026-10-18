@@ -22,7 +22,7 @@ import {
   SessionalConfig,
   AuditLogEntry,
 } from './types/domain.ts';
-import { api, authFetch } from './services/api.ts';
+import { api, authFetch, getApiAuthToken, setApiAuthToken } from './services/api.ts';
 import { Sidebar } from './components/layout/Sidebar.tsx';
 import { TopBar } from './components/layout/TopBar.tsx';
 import { LoginModal } from './components/auth/LoginModal.tsx';
@@ -61,9 +61,7 @@ import { StudentFinalReports } from './components/student/StudentFinalReports.ts
 
 export default function App() {
   // Session & Authentication State
-  const [authToken, setAuthToken] = useState<string | null>(() => {
-    return localStorage.getItem('spis_auth_token') || null;
-  });
+  const [authToken, setAuthToken] = useState<string | null>(() => getApiAuthToken());
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -97,26 +95,25 @@ export default function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
-  // Synchronize Token Verification on Mount & Token Change
-  useEffect(() => {
-    if (!authToken) {
+  // Verify Auth Session using a specific token or current stored token
+  const verifySession = async (tokenToVerify?: string | null) => {
+    const token = tokenToVerify ?? authToken ?? getApiAuthToken();
+    if (!token) {
       setCurrentUser(null);
       setAuthLoading(false);
       return;
     }
-    verifySession();
-  }, [authToken]);
 
-  const verifySession = async () => {
     setAuthLoading(true);
     setAuthError(null);
     try {
-      const res = await authFetch('/api/auth/me');
-      const data = await res.json();
-      if (data.success) {
+      const data = await api.getMe(token);
+      if (data.success && data.data) {
+        setApiAuthToken(token);
+        setAuthToken(token);
         setCurrentUser(data.data);
-        localStorage.setItem('spis_auth_token', authToken!);
-        // Set default page by role
+
+        // Direct user to default role page
         if (data.data.role === UserRole.ADMIN) {
           setActivePage((prev) => (prev && prev !== 'dashboard' ? prev : 'overview'));
         } else if (data.data.role === UserRole.TEACHER) {
@@ -125,17 +122,57 @@ export default function App() {
           setActivePage('dashboard');
         }
       } else {
-        setAuthError(data.message || 'Session expired.');
+        setAuthError(data.message || 'Session verification failed.');
         setAuthToken(null);
-        localStorage.removeItem('spis_auth_token');
+        setApiAuthToken(null);
+        setCurrentUser(null);
       }
     } catch (err: any) {
-      setAuthError('Authentication verification failed: ' + err.message);
+      setAuthError('Authentication verification error: ' + err.message);
       setAuthToken(null);
+      setApiAuthToken(null);
+      setCurrentUser(null);
     } finally {
       setAuthLoading(false);
     }
   };
+
+  // Check initial token on mount
+  useEffect(() => {
+    const token = getApiAuthToken();
+    if (token) {
+      verifySession(token);
+    } else {
+      setAuthLoading(false);
+    }
+  }, []);
+
+  // Set up Firebase Auth state listener to keep token fresh
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    (async () => {
+      try {
+        const { auth } = await import('./config/firebase.ts');
+        const { onAuthStateChanged } = await import('firebase/auth');
+        if (auth) {
+          unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+            if (fbUser) {
+              const freshToken = await fbUser.getIdToken();
+              setApiAuthToken(freshToken);
+              setAuthToken(freshToken);
+              verifySession(freshToken);
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('[Firebase Auth state listener]', err);
+      }
+    })();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
 
   const handleLogin = async (email: string) => {
     setAuthLoading(true);
@@ -143,8 +180,10 @@ export default function App() {
     try {
       const data = await api.loginAs(email);
       if (data.success && data.token) {
+        setApiAuthToken(data.token);
         setAuthToken(data.token);
         setIsLoginModalOpen(false);
+        await verifySession(data.token);
       } else {
         setAuthError(data.message || 'Authentication rejected');
       }
@@ -155,10 +194,17 @@ export default function App() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      const { auth } = await import('./config/firebase.ts');
+      const { signOut } = await import('firebase/auth');
+      if (auth) {
+        await signOut(auth);
+      }
+    } catch (_) {}
     setAuthToken(null);
+    setApiAuthToken(null);
     setCurrentUser(null);
-    localStorage.removeItem('spis_auth_token');
     setActivePage('overview');
   };
 

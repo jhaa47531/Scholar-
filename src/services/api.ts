@@ -14,12 +14,57 @@ import {
   UserRole,
 } from '../types/domain.ts';
 
-function getToken(): string | null {
-  return localStorage.getItem('spis_auth_token');
+let currentAuthToken: string | null = typeof window !== 'undefined'
+  ? localStorage.getItem('spis_auth_token')
+  : null;
+
+export function setApiAuthToken(token: string | null) {
+  currentAuthToken = token;
+  try {
+    if (typeof window !== 'undefined') {
+      if (token) {
+        localStorage.setItem('spis_auth_token', token);
+      } else {
+        localStorage.removeItem('spis_auth_token');
+      }
+    }
+  } catch (err) {
+    console.warn('[API] Could not update localStorage token:', err);
+  }
 }
 
-export async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
-  const token = getToken();
+export function getApiAuthToken(): string | null {
+  if (currentAuthToken) return currentAuthToken;
+  try {
+    if (typeof window !== 'undefined') {
+      currentAuthToken = localStorage.getItem('spis_auth_token');
+    }
+  } catch {
+    currentAuthToken = null;
+  }
+  return currentAuthToken;
+}
+
+export async function authFetch(
+  url: string,
+  options: RequestInit = {},
+  explicitToken?: string | null
+): Promise<Response> {
+  let token = explicitToken || getApiAuthToken();
+
+  // If token is missing, attempt to acquire a fresh ID token from active Firebase Auth client
+  if (!token) {
+    try {
+      const { auth } = await import('../config/firebase.ts');
+      if (auth && auth.currentUser) {
+        token = await auth.currentUser.getIdToken(false);
+        if (token) {
+          setApiAuthToken(token);
+        }
+      }
+    } catch (_) {}
+  }
+
   const headers = new Headers(options.headers || {});
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
@@ -39,13 +84,13 @@ export const api = {
   },
 
   // Auth
-  getMe: async () => {
-    const res = await authFetch('/api/auth/me');
+  getMe: async (explicitToken?: string | null) => {
+    const res = await authFetch('/api/auth/me', {}, explicitToken);
     return res.json();
   },
 
   loginAs: async (email: string) => {
-    // Try real Firebase token generation first
+    // 1. Try real Firebase token generation first
     try {
       const fbRes = await fetch('/api/auth/firebase-token', {
         method: 'POST',
@@ -54,26 +99,33 @@ export const api = {
       });
       const fbData = await fbRes.json();
       if (fbData.success && fbData.customToken) {
-        // Dynamic import client firebase to avoid hard dependency if offline
         const { auth } = await import('../config/firebase.ts');
         const { signInWithCustomToken } = await import('firebase/auth');
         if (auth) {
           const cred = await signInWithCustomToken(auth, fbData.customToken);
           const realIdToken = await cred.user.getIdToken(true);
+          setApiAuthToken(realIdToken);
           return { success: true, token: realIdToken, user: fbData.user };
         }
+      } else if (fbData.success && fbData.token) {
+        setApiAuthToken(fbData.token);
+        return fbData;
       }
     } catch (err) {
       console.warn('[API] Firebase login fallback:', err);
     }
 
-    // Standard dev token fallback
+    // 2. Standard dev token fallback
     const res = await fetch('/api/auth/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email.trim() }),
     });
-    return res.json();
+    const devData = await res.json();
+    if (devData.success && devData.token) {
+      setApiAuthToken(devData.token);
+    }
+    return devData;
   },
 
   // Academic Master
@@ -187,7 +239,11 @@ export const api = {
   },
 
   // Reports
-  getSessionalReport: async (sessionId: string, sessionalNumber: number, studentId?: string): Promise<{ success: boolean; data?: SessionalOverallReport; message?: string }> => {
+  getSessionalReport: async (
+    sessionId: string,
+    sessionalNumber: number,
+    studentId?: string
+  ): Promise<{ success: boolean; data?: SessionalOverallReport; message?: string }> => {
     const params = new URLSearchParams({
       sessionId,
       sessionalNumber: sessionalNumber.toString(),
