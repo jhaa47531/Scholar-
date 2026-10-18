@@ -1,0 +1,119 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. GLOBAL SAFETY NET: Default-Deny Catch-All
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- REUSABLE SECURITY PRIMITIVES ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
+    }
+
+    function isTeacher() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'TEACHER';
+    }
+
+    function isStudent() {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'STUDENT';
+    }
+
+    // --- USER PROFILES ---
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // --- ACADEMIC MASTER CATALOG (Read for authenticated, Write ADMIN only) ---
+    match /academicSessions/{sessionId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /courseStructures/{courseId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /subjects/{subjectId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /teacherAssignments/{assignmentId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // --- SESSIONAL ASSESSMENT CONFIGURATIONS ---
+    match /sessionalConfigs/{configId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // --- PROFILES (STUDENTS & TEACHERS) ---
+    match /teachers/{teacherId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /students/{studentId} {
+      allow get: if isSignedIn() && (
+        isAdmin() ||
+        isTeacher() ||
+        (isStudent() && resource.data.userId == request.auth.uid)
+      );
+      allow list: if isAdmin() || isTeacher();
+      allow write: if isAdmin();
+    }
+
+    // --- ASSESSMENTS & MARKS (ZERO-TRUST DATA ISOLATION) ---
+    match /assessments/{assessmentId} {
+      // Students can ONLY read their own records, and ONLY IF FINAL_SUBMITTED.
+      // Drafts are strictly DENIED to students.
+      allow get: if isSignedIn() && (
+        isAdmin() ||
+        isTeacher() ||
+        (isStudent() &&
+          resource.data.studentId == request.auth.uid &&
+          resource.data.submissionStatus == 'FINAL_SUBMITTED')
+      );
+
+      // Secure list query enforcement
+      allow list: if isSignedIn() && (
+        isAdmin() ||
+        isTeacher() ||
+        (isStudent() &&
+          resource.data.studentId == request.auth.uid &&
+          resource.data.submissionStatus == 'FINAL_SUBMITTED')
+      );
+
+      // Writes restricted to verified Teachers or Admins. Students NEVER write marks.
+      allow create, update: if isSignedIn() && (isAdmin() || isTeacher());
+      allow delete: if isAdmin();
+    }
+
+    // --- AUDIT TRAIL ---
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin() || isTeacher();
+    }
+  }
+}

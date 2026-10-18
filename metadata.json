@@ -1,0 +1,6 @@
+{
+  "name": "Student Performance Intelligence System (SPIS)",
+  "description": "Senior-level academic performance management system with modular architecture, strict assessment workflows, weighted calculations, and future Oracle migration readiness.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

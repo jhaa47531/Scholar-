@@ -1,0 +1,196 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Application user account with role",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "role": { "type": "string", "enum": ["ADMIN", "TEACHER", "STUDENT"] },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "displayName", "role", "isActive"]
+    },
+    "CourseStructure": {
+      "title": "CourseStructure",
+      "description": "Configurable degree programme structure",
+      "type": "object",
+      "properties": {
+        "courseCode": { "type": "string", "maxLength": 32 },
+        "name": { "type": "string", "maxLength": 128 },
+        "totalSemesters": { "type": "number" },
+        "durationYears": { "type": "number" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["courseCode", "name", "totalSemesters", "durationYears"]
+    },
+    "AcademicSession": {
+      "title": "AcademicSession",
+      "description": "Academic term/year session",
+      "type": "object",
+      "properties": {
+        "sessionCode": { "type": "string", "maxLength": 32 },
+        "title": { "type": "string", "maxLength": 128 },
+        "startDate": { "type": "string", "format": "date" },
+        "endDate": { "type": "string", "format": "date" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["sessionCode", "title", "startDate", "endDate", "isActive"]
+    },
+    "Subject": {
+      "title": "Subject",
+      "description": "Academic subject in course curriculum",
+      "type": "object",
+      "properties": {
+        "subjectCode": { "type": "string", "maxLength": 32 },
+        "name": { "type": "string", "maxLength": 128 },
+        "courseId": { "type": "string", "maxLength": 64 },
+        "semester": { "type": "number" },
+        "isRequired": { "type": "boolean" },
+        "electiveGroup": { "type": "string", "maxLength": 64 },
+        "credits": { "type": "number" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["subjectCode", "name", "courseId", "semester", "isRequired", "credits"]
+    },
+    "Student": {
+      "title": "Student",
+      "description": "Student master profile",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "enrollmentNo": { "type": "string", "maxLength": 64 },
+        "rollNo": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 128 },
+        "courseId": { "type": "string", "maxLength": 64 },
+        "currentSemester": { "type": "number" },
+        "admissionSessionId": { "type": "string", "maxLength": 64 },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["userId", "enrollmentNo", "rollNo", "name", "courseId", "currentSemester", "admissionSessionId"]
+    },
+    "Teacher": {
+      "title": "Teacher",
+      "description": "Faculty member profile",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "employeeCode": { "type": "string", "maxLength": 64 },
+        "name": { "type": "string", "maxLength": 128 },
+        "department": { "type": "string", "maxLength": 128 },
+        "designation": { "type": "string", "maxLength": 128 },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["userId", "employeeCode", "name", "department", "designation"]
+    },
+    "TeacherAssignment": {
+      "title": "TeacherAssignment",
+      "description": "Teacher assigned to teach a subject for a session",
+      "type": "object",
+      "properties": {
+        "teacherId": { "type": "string", "maxLength": 64 },
+        "subjectId": { "type": "string", "maxLength": 64 },
+        "sessionId": { "type": "string", "maxLength": 64 },
+        "semester": { "type": "number" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["teacherId", "subjectId", "sessionId", "semester", "isActive"]
+    },
+    "SessionalConfig": {
+      "title": "SessionalConfig",
+      "description": "Configuration for sessional examination",
+      "type": "object",
+      "properties": {
+        "sessionId": { "type": "string", "maxLength": 64 },
+        "courseId": { "type": "string", "maxLength": 64 },
+        "semester": { "type": "number" },
+        "sessionalNumber": { "type": "number", "enum": [1, 2] },
+        "maxMarks": { "type": "number" },
+        "status": { "type": "string", "enum": ["NOT_CONFIGURED", "NOT_CONDUCTED", "ACTIVE", "COMPLETED"] }
+      },
+      "required": ["sessionId", "courseId", "semester", "sessionalNumber", "maxMarks", "status"]
+    },
+    "Assessment": {
+      "title": "Assessment",
+      "description": "Marks and evaluation for a student in a subject and sessional",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string", "maxLength": 64 },
+        "subjectId": { "type": "string", "maxLength": 64 },
+        "configId": { "type": "string", "maxLength": 64 },
+        "sessionId": { "type": "string", "maxLength": 64 },
+        "semester": { "type": "number" },
+        "sessionalNumber": { "type": "number", "enum": [1, 2] },
+        "obtainedMarks": { "type": "number" },
+        "maxMarks": { "type": "number" },
+        "examAttendance": { "type": "string", "enum": ["ATTENDED", "NOT_ATTENDED"] },
+        "classAttendancePct": { "type": "number" },
+        "assignmentScore": { "type": "number" },
+        "presentationScore": { "type": "number" },
+        "classInteractionScore": { "type": "number" },
+        "submissionStatus": { "type": "string", "enum": ["DRAFT", "FINAL_SUBMITTED"] },
+        "submittingTeacherId": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["studentId", "subjectId", "configId", "sessionId", "semester", "sessionalNumber", "maxMarks", "examAttendance", "submissionStatus", "submittingTeacherId"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Audit record for sensitive operations or post-submission corrections",
+      "type": "object",
+      "properties": {
+        "entityType": { "type": "string", "maxLength": 64 },
+        "entityId": { "type": "string", "maxLength": 64 },
+        "action": { "type": "string", "maxLength": 32 },
+        "actorId": { "type": "string", "maxLength": 128 },
+        "actorRole": { "type": "string", "maxLength": 32 },
+        "reason": { "type": "string", "maxLength": 512 }
+      },
+      "required": ["entityType", "entityId", "action", "actorId", "actorRole"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "User" },
+      "description": "User profiles and credentials mapping"
+    },
+    "/courseStructures/{courseId}": {
+      "schema": { "$ref": "CourseStructure" },
+      "description": "Configurable course structures"
+    },
+    "/academicSessions/{sessionId}": {
+      "schema": { "$ref": "AcademicSession" },
+      "description": "Academic sessions"
+    },
+    "/subjects/{subjectId}": {
+      "schema": { "$ref": "Subject" },
+      "description": "Subjects master catalogue"
+    },
+    "/students/{studentId}": {
+      "schema": { "$ref": "Student" },
+      "description": "Student records and enrollment info"
+    },
+    "/teachers/{teacherId}": {
+      "schema": { "$ref": "Teacher" },
+      "description": "Faculty records"
+    },
+    "/teacherAssignments/{assignmentId}": {
+      "schema": { "$ref": "TeacherAssignment" },
+      "description": "Teacher-subject course assignments"
+    },
+    "/sessionalConfigs/{configId}": {
+      "schema": { "$ref": "SessionalConfig" },
+      "description": "Sessional examination configuration"
+    },
+    "/assessments/{assessmentId}": {
+      "schema": { "$ref": "Assessment" },
+      "description": "Student assessment marks records"
+    },
+    "/auditLogs/{logId}": {
+      "schema": { "$ref": "AuditLog" },
+      "description": "Audit trail log records"
+    }
+  }
+}
