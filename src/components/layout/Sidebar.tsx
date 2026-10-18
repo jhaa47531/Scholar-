@@ -10,7 +10,7 @@ import {
   FileSpreadsheet,
   History,
   Database,
-  ClipboardList,
+  BarChart3,
   FileCheck2,
   FileEdit,
   TrendingUp,
@@ -21,6 +21,7 @@ import {
   LogOut,
   Shield,
   Layers,
+  X,
 } from 'lucide-react';
 import { UserRole } from '../../types/domain.ts';
 
@@ -41,6 +42,8 @@ interface SidebarProps {
   userEmail?: string;
   onSwitchUser: () => void;
   onLogout: () => void;
+  isMobileOpen?: boolean;
+  onCloseMobile?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -53,39 +56,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
   userEmail,
   onSwitchUser,
   onLogout,
+  isMobileOpen,
+  onCloseMobile,
 }) => {
   const getNavItems = (): NavItem[] => {
     switch (currentRole) {
       case UserRole.ADMIN:
         return [
-          { id: 'overview', label: 'Overview & Analytics', icon: LayoutDashboard },
-          { id: 'students', label: 'Students', icon: GraduationCap },
+          { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+          { id: 'analytics', label: 'Institutional Analytics', icon: BarChart3 },
+          { id: 'students', label: 'Students Directory', icon: GraduationCap },
           { id: 'faculty', label: 'Faculty Directory', icon: Users },
           { id: 'courses', label: 'Courses & Semesters', icon: Layers },
           { id: 'subjects', label: 'Subjects Master', icon: BookOpen },
           { id: 'assignments', label: 'Teacher Assignments', icon: UserCheck },
-          { id: 'configs', label: 'Assessment Configs', icon: Settings },
+          { id: 'configs', label: 'Assessment Configuration', icon: Settings },
           { id: 'reports', label: 'Performance Reports', icon: FileSpreadsheet },
           { id: 'audit', label: 'Audit Logs', icon: History },
-          { id: 'migration', label: 'Oracle Migration', icon: Database },
+          { id: 'migration', label: 'Data Export & Migration', icon: Database },
         ];
       case UserRole.TEACHER:
         return [
-          { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+          { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
           { id: 'my_subjects', label: 'My Subjects', icon: BookOpen },
           { id: 'roster', label: 'Student Roster', icon: Users },
           { id: 'marks_entry', label: 'Marks Entry', icon: FileSpreadsheet },
-          { id: 'drafts', label: 'Draft Assessments', icon: FileEdit },
+          { id: 'drafts', label: 'Drafts', icon: FileEdit },
           { id: 'finalized', label: 'Final Submissions', icon: FileCheck2 },
           { id: 'corrections', label: 'Correction History', icon: History },
         ];
       case UserRole.STUDENT:
         return [
-          { id: 'dashboard', label: 'My Dashboard', icon: LayoutDashboard },
+          { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
           { id: 'results', label: 'My Results', icon: Award },
-          { id: 'subject_performance', label: 'Subject Performance', icon: BookOpen },
+          { id: 'subject_performance', label: 'Subject-wise Performance', icon: BookOpen },
           { id: 'progress_analytics', label: 'Progress Analytics', icon: TrendingUp },
-          { id: 'recommendations', label: 'Advisory Engine', icon: Sparkles },
+          { id: 'recommendations', label: 'Improvement Advisory', icon: Sparkles },
           { id: 'final_reports', label: 'Finalized Reports', icon: FileCheck2 },
         ];
       default:
@@ -95,16 +101,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const navItems = getNavItems();
 
-  return (
-    <aside
-      className={`relative flex flex-col justify-between h-screen bg-slate-950 border-r border-slate-800 transition-all duration-200 z-30 ${
-        isCollapsed ? 'w-20' : 'w-64'
-      }`}
-    >
+  const sidebarContent = (
+    <div className="flex flex-col justify-between h-full bg-[#060d1a] border-r border-[#162740]">
       {/* Brand Header */}
-      <div className="flex items-center justify-between h-16 px-4 border-b border-slate-800">
+      <div className="flex items-center justify-between h-16 px-4 border-b border-[#162740] shrink-0">
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
+          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-400 text-slate-950 font-bold shrink-0 shadow-sm shadow-amber-500/20">
             <GraduationCap className="w-5 h-5" />
           </div>
           {!isCollapsed && (
@@ -112,28 +114,39 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span className="font-bold text-sm tracking-tight text-white block">
                 ScholarSense
               </span>
-              <span className="text-[10px] text-slate-400 font-mono tracking-wider block">
+              <span className="text-[10px] text-amber-400/90 font-mono tracking-wider block font-semibold">
                 SPIS PLATFORM
               </span>
             </div>
           )}
         </div>
 
+        {/* Desktop Collapse Toggle */}
         <button
           onClick={onToggleCollapse}
           title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-850 transition-colors"
         >
           {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
+
+        {/* Mobile Close Button */}
+        {onCloseMobile && (
+          <button
+            onClick={onCloseMobile}
+            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-850"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
-      {/* Role Badge Indicator */}
+      {/* Role Pill Banner */}
       {!isCollapsed && (
-        <div className="px-4 py-2 bg-slate-900/60 border-b border-slate-800/80 flex items-center justify-between text-xs">
+        <div className="px-4 py-2 bg-[#091526] border-b border-[#162740] flex items-center justify-between text-xs">
           <div className="flex items-center gap-1.5 text-slate-400">
             <Shield className="w-3.5 h-3.5 text-amber-400" />
-            <span className="font-medium text-slate-300">
+            <span className="font-semibold text-slate-200">
               {currentRole === UserRole.ADMIN
                 ? 'Institutional Admin'
                 : currentRole === UserRole.TEACHER
@@ -141,7 +154,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 : 'Student Portal'}
             </span>
           </div>
-          <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+          <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 border border-slate-700">
             {currentRole}
           </span>
         </div>
@@ -155,12 +168,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
           return (
             <button
               key={item.id}
-              onClick={() => onSelectPage(item.id)}
+              onClick={() => {
+                onSelectPage(item.id);
+                if (onCloseMobile) onCloseMobile();
+              }}
               title={isCollapsed ? item.label : undefined}
-              className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
+              className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
                 isActive
-                  ? 'bg-amber-500/10 text-amber-300 border border-amber-500/30 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/90 border border-transparent'
+                  ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900 border border-transparent'
               } ${isCollapsed ? 'justify-center px-0' : ''}`}
             >
               <Icon
@@ -174,7 +190,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </span>
               )}
               {!isCollapsed && item.badge && (
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-slate-400">
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-amber-300">
                   {item.badge}
                 </span>
               )}
@@ -184,11 +200,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </nav>
 
       {/* User Footer & Switch Role */}
-      <div className="p-3 border-t border-slate-800 bg-slate-900/40">
+      <div className="p-3 border-t border-[#162740] bg-[#091526]/80 shrink-0">
         {!isCollapsed ? (
           <div className="space-y-2">
-            <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-800">
-              <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-amber-400 shrink-0">
+            <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-800">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-600 to-amber-400 flex items-center justify-center text-xs font-bold text-slate-950 shrink-0 shadow-sm">
                 {userDisplayName ? userDisplayName.charAt(0) : 'U'}
               </div>
               <div className="overflow-hidden flex-1">
@@ -197,19 +213,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               <button
                 onClick={onSwitchUser}
-                className="flex-1 py-1.5 px-2 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-medium transition-colors text-center"
+                className="flex-1 py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-200 text-[11px] font-semibold border border-slate-700 transition-colors text-center cursor-pointer"
               >
-                Switch Account
+                Switch Role
               </button>
               <button
                 onClick={onLogout}
                 title="Sign out"
-                className="p-1.5 rounded-md bg-slate-850 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 border border-slate-750 transition-colors"
+                className="p-1.5 rounded-lg bg-slate-850 hover:bg-rose-500/15 text-slate-400 hover:text-rose-400 border border-slate-750 transition-colors cursor-pointer"
               >
-                <LogOut className="w-3.5 h-3.5" />
+                <LogOut className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -218,20 +234,46 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={onSwitchUser}
               title="Switch Account"
-              className="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 flex items-center justify-center transition-colors"
+              className="w-10 h-10 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 flex items-center justify-center transition-colors border border-slate-800 cursor-pointer"
             >
               <Users className="w-4 h-4" />
             </button>
             <button
               onClick={onLogout}
               title="Sign out"
-              className="w-9 h-9 rounded-lg bg-slate-900 hover:bg-rose-500/10 text-slate-400 hover:text-rose-400 flex items-center justify-center transition-colors"
+              className="w-10 h-10 rounded-xl bg-slate-900 hover:bg-rose-500/15 text-slate-400 hover:text-rose-400 flex items-center justify-center transition-colors border border-slate-800 cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
             </button>
           </div>
         )}
       </div>
-    </aside>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Desktop Sidebar */}
+      <aside
+        className={`hidden lg:flex flex-col h-screen transition-all duration-200 shrink-0 z-30 ${
+          isCollapsed ? 'w-20' : 'w-64'
+        }`}
+      >
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile Sidebar Drawer */}
+      {isMobileOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          <div
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={onCloseMobile}
+          />
+          <div className="relative w-72 max-w-[80vw] h-full shadow-2xl">
+            {sidebarContent}
+          </div>
+        </div>
+      )}
+    </>
   );
 };

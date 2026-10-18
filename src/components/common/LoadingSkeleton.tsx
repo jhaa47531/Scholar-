@@ -2,14 +2,23 @@ import React from 'react';
 
 interface LoadingSkeletonProps {
   rows?: number;
+  count?: number;
+  height?: string;
   className?: string;
 }
 
-export const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({ rows = 4, className = '' }) => {
+export const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
+  rows = 4,
+  count,
+  height = 'h-10',
+  className = '',
+}) => {
+  const numRows = count ?? rows;
+
   return (
     <div className={`space-y-3 animate-pulse ${className}`}>
-      {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="h-10 bg-slate-800/60 rounded-lg border border-slate-800/80" />
+      {Array.from({ length: numRows }).map((_, i) => (
+        <div key={i} className={`${height} bg-slate-800/60 rounded-xl border border-slate-850`} />
       ))}
     </div>
   );

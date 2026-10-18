@@ -1,1 +1,74 @@
 @import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-canvas: #060d1a;
+    --surface-navy: #0b1729;
+    --surface-navy-elevated: #102138;
+    --border-navy: #192a45;
+    --gold-primary: #f59e0b;
+    --gold-subtle: rgba(245, 158, 11, 0.15);
+  }
+
+  body {
+    background-color: #060d1a;
+    color: #e2e8f0;
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* 3D Depth & Micro-interaction Utilities */
+.card-3d {
+  transform-style: preserve-3d;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.card-3d:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 32px -8px rgba(2, 6, 23, 0.8), 0 0 0 1px rgba(245, 158, 11, 0.25);
+}
+
+.surface-navy {
+  background: linear-gradient(160deg, #0d1b2e 0%, #081220 100%);
+  border: 1px solid #1a2c47;
+}
+
+.surface-navy-elevated {
+  background: linear-gradient(160deg, #12243d 0%, #0d1b2e 100%);
+  border: 1px solid #233a5e;
+}
+
+.gold-gradient-text {
+  background: linear-gradient(135deg, #fef08a 0%, #f59e0b 50%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-border-glow {
+  box-shadow: 0 0 20px -3px rgba(245, 158, 11, 0.2), inset 0 0 12px -2px rgba(245, 158, 11, 0.1);
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #060d1a;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e3352;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #f59e0b;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .card-3d,
+  .card-3d:hover {
+    transform: none !important;
+    transition: none !important;
+  }
+}
