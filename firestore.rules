@@ -12,31 +12,39 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isValidId(id) {
-      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    function academicUserId() {
+      return 'usr_' + request.auth.uid;
+    }
+
+    function hasRole(role) {
+      let userPath = /databases/$(database)/documents/users/$(academicUserId());
+      return isSignedIn() &&
+        exists(userPath) &&
+        get(userPath).data.role == role;
     }
 
     function isAdmin() {
-      return isSignedIn() &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'ADMIN';
+      return hasRole('ADMIN');
     }
 
     function isTeacher() {
-      return isSignedIn() &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'TEACHER';
+      return hasRole('TEACHER');
     }
 
     function isStudent() {
-      return isSignedIn() &&
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'STUDENT';
+      return hasRole('STUDENT');
+    }
+
+    function ownsStudentProfile(studentId) {
+      let studentPath = /databases/$(database)/documents/students/$(studentId);
+      return isStudent() &&
+        exists(studentPath) &&
+        get(studentPath).data.userId == academicUserId();
     }
 
     // --- USER PROFILES ---
     match /users/{userId} {
-      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow get: if isSignedIn() && (academicUserId() == userId || isAdmin());
       allow list: if isAdmin();
       allow create, update, delete: if isAdmin();
     }
@@ -78,7 +86,7 @@ service cloud.firestore {
       allow get: if isSignedIn() && (
         isAdmin() ||
         isTeacher() ||
-        (isStudent() && resource.data.userId == request.auth.uid)
+        (isStudent() && resource.data.userId == academicUserId())
       );
       allow list: if isAdmin() || isTeacher();
       allow write: if isAdmin();
@@ -91,8 +99,7 @@ service cloud.firestore {
       allow get: if isSignedIn() && (
         isAdmin() ||
         isTeacher() ||
-        (isStudent() &&
-          resource.data.studentId == request.auth.uid &&
+        (ownsStudentProfile(resource.data.studentId) &&
           resource.data.submissionStatus == 'FINAL_SUBMITTED')
       );
 
@@ -100,8 +107,7 @@ service cloud.firestore {
       allow list: if isSignedIn() && (
         isAdmin() ||
         isTeacher() ||
-        (isStudent() &&
-          resource.data.studentId == request.auth.uid &&
+        (ownsStudentProfile(resource.data.studentId) &&
           resource.data.submissionStatus == 'FINAL_SUBMITTED')
       );
 

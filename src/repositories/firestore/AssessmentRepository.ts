@@ -1,12 +1,17 @@
 import {
   AssessmentConductStatus,
   AssessmentRecord,
+  AuditLogEntry,
   ExamAttendance,
   SessionalConfig,
   SessionalNumber,
   SubmissionStatus,
+  UserRole,
 } from '../../types/domain.ts';
 import { IAssessmentRepository } from '../interfaces/IAssessmentRepository.ts';
+import { AssessmentCorrectionFields, AssessmentCorrectionResult } from '../interfaces/IAssessmentRepository.ts';
+import { IAuditRepository } from '../interfaces/IAuditRepository.ts';
+import { AuditRepository } from './AuditRepository.ts';
 
 /**
  * Assessment Repository Implementation
@@ -16,8 +21,10 @@ import { IAssessmentRepository } from '../interfaces/IAssessmentRepository.ts';
 export class AssessmentRepository implements IAssessmentRepository {
   private configs: Map<string, SessionalConfig> = new Map();
   private assessments: Map<string, AssessmentRecord> = new Map();
+  private auditRepository: IAuditRepository;
 
-  constructor() {
+  constructor(auditRepository: IAuditRepository = new AuditRepository()) {
+    this.auditRepository = auditRepository;
     this.seedDefaultSessionalConfigs();
   }
 
@@ -162,6 +169,10 @@ export class AssessmentRepository implements IAssessmentRepository {
     return null;
   }
 
+  async getAssessmentById(id: string): Promise<AssessmentRecord | null> {
+    return this.assessments.get(id) ?? null;
+  }
+
   async getSubjectAssessments(subjectId: string, configId: string): Promise<AssessmentRecord[]> {
     return Array.from(this.assessments.values()).filter(
       (a) => a.subjectId === subjectId && a.configId === configId
@@ -215,26 +226,62 @@ export class AssessmentRepository implements IAssessmentRepository {
     return saved;
   }
 
-  async updateAssessmentWithCorrection(
+  async correctAssessmentWithAudit(
     assessmentId: string,
-    updates: Partial<AssessmentRecord>,
+    updates: AssessmentCorrectionFields,
     correctionReason: string,
-    authorizedBy: string
-  ): Promise<AssessmentRecord> {
+    actorId: string,
+    actorRole: UserRole,
+    expectedAssessment: AssessmentRecord,
+    teacherId?: string
+  ): Promise<AssessmentCorrectionResult> {
     const existing = this.assessments.get(assessmentId);
     if (!existing) {
       throw new Error(`Assessment with ID ${assessmentId} not found`);
     }
+    assertCorrectionContextMatches(existing, expectedAssessment);
+    if (actorRole === UserRole.TEACHER && !teacherId) {
+      throw new Error('TEACHER_ID_REQUIRED');
+    }
 
+    const timestamp = new Date().toISOString();
     const updated: AssessmentRecord = {
       ...existing,
       ...updates,
       correctionReason,
-      correctionAuthorizedBy: authorizedBy,
-      updatedAt: new Date().toISOString(),
+      correctionAuthorizedBy: actorId,
+      updatedAt: timestamp,
     };
+    const auditEntry: Omit<AuditLogEntry, 'id' | 'timestamp'> = {
+      entityType: 'ASSESSMENT',
+      entityId: assessmentId,
+      action: 'CORRECTION',
+      actorId,
+      actorRole,
+      reason: correctionReason,
+      previousData: { ...existing },
+      newData: { ...updated },
+    };
+
+    const auditLog = await this.auditRepository.recordAudit(auditEntry);
     this.assessments.set(assessmentId, updated);
-    return updated;
+    return { assessment: updated, auditLog };
+  }
+}
+
+function assertCorrectionContextMatches(current: AssessmentRecord, expected: AssessmentRecord): void {
+  const identityFields: (keyof AssessmentRecord)[] = [
+    'id',
+    'studentId',
+    'subjectId',
+    'configId',
+    'sessionId',
+    'semester',
+    'sessionalNumber',
+    'submittingTeacherId',
+  ];
+  if (identityFields.some((field) => current[field] !== expected[field])) {
+    throw new Error('ASSESSMENT_CONTEXT_CHANGED');
   }
 }
 

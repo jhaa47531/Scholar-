@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { spawn } from 'node:child_process';
 
 const isTsxLoaded =
@@ -64,4 +65,3 @@ async function runServer() {
     console.log(`[SPIS Server] Health Check: http://localhost:${PORT}/api/health`);
   });
 }
-

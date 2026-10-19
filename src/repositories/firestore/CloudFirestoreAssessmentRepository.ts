@@ -1,12 +1,16 @@
+import { randomUUID } from 'node:crypto';
 import { Firestore } from 'firebase-admin/firestore';
 import { IAssessmentRepository } from '../interfaces/IAssessmentRepository.ts';
+import { AssessmentCorrectionFields, AssessmentCorrectionResult } from '../interfaces/IAssessmentRepository.ts';
 import {
   AssessmentConductStatus,
   AssessmentRecord,
+  AuditLogEntry,
   ExamAttendance,
   SessionalConfig,
   SessionalNumber,
   SubmissionStatus,
+  UserRole,
 } from '../../types/domain.ts';
 
 /**
@@ -176,6 +180,11 @@ export class CloudFirestoreAssessmentRepository implements IAssessmentRepository
     return snap.empty ? null : (snap.docs[0].data() as AssessmentRecord);
   }
 
+  async getAssessmentById(id: string): Promise<AssessmentRecord | null> {
+    const doc = await this.db.collection('assessments').doc(id).get();
+    return doc.exists ? (doc.data() as AssessmentRecord) : null;
+  }
+
   async getSubjectAssessments(subjectId: string, configId: string): Promise<AssessmentRecord[]> {
     const snap = await this.db
       .collection('assessments')
@@ -249,31 +258,80 @@ export class CloudFirestoreAssessmentRepository implements IAssessmentRepository
     return saved;
   }
 
-  async updateAssessmentWithCorrection(
+  async correctAssessmentWithAudit(
     assessmentId: string,
-    updates: Partial<AssessmentRecord>,
+    updates: AssessmentCorrectionFields,
     correctionReason: string,
-    authorizedBy: string
-  ): Promise<AssessmentRecord> {
+    actorId: string,
+    actorRole: UserRole,
+    expectedAssessment: AssessmentRecord,
+    teacherId?: string
+  ): Promise<AssessmentCorrectionResult> {
     const docRef = this.db.collection('assessments').doc(assessmentId);
+    const auditRef = this.db.collection('auditLogs').doc(`aud_${randomUUID()}`);
+    const teacherAssignmentsQuery = teacherId
+      ? this.db
+          .collection('teacherAssignments')
+          .where('teacherId', '==', teacherId)
+          .where('subjectId', '==', expectedAssessment.subjectId)
+          .where('sessionId', '==', expectedAssessment.sessionId)
+          .where('isActive', '==', true)
+      : null;
 
     return await this.db.runTransaction(async (transaction) => {
-      const doc = await transaction.get(docRef);
+      const [doc, assignments] = await Promise.all([
+        transaction.get(docRef),
+        teacherAssignmentsQuery ? transaction.get(teacherAssignmentsQuery) : Promise.resolve(null),
+      ]);
       if (!doc.exists) {
-        throw new Error(`Assessment with ID ${assessmentId} not found in Firestore`);
+        throw new Error('ASSESSMENT_NOT_FOUND');
       }
 
       const existing = doc.data() as AssessmentRecord;
+      assertCorrectionContextMatches(existing, expectedAssessment);
+      if (actorRole === UserRole.TEACHER && (!teacherId || !assignments || assignments.empty)) {
+        throw new Error('UNAUTHORIZED_SUBJECT_ACCESS');
+      }
+      const timestamp = new Date().toISOString();
       const updated: AssessmentRecord = {
         ...existing,
         ...updates,
         correctionReason,
-        correctionAuthorizedBy: authorizedBy,
-        updatedAt: new Date().toISOString(),
+        correctionAuthorizedBy: actorId,
+        updatedAt: timestamp,
+      };
+      const auditLog: AuditLogEntry = {
+        id: auditRef.id,
+        entityType: 'ASSESSMENT',
+        entityId: assessmentId,
+        action: 'CORRECTION',
+        actorId,
+        actorRole,
+        reason: correctionReason,
+        previousData: { ...existing },
+        newData: { ...updated },
+        timestamp,
       };
 
       transaction.set(docRef, updated);
-      return updated;
+      transaction.create(auditRef, auditLog);
+      return { assessment: updated, auditLog };
     });
+  }
+}
+
+function assertCorrectionContextMatches(current: AssessmentRecord, expected: AssessmentRecord): void {
+  const identityFields: (keyof AssessmentRecord)[] = [
+    'id',
+    'studentId',
+    'subjectId',
+    'configId',
+    'sessionId',
+    'semester',
+    'sessionalNumber',
+    'submittingTeacherId',
+  ];
+  if (identityFields.some((field) => current[field] !== expected[field])) {
+    throw new Error('ASSESSMENT_CONTEXT_CHANGED');
   }
 }

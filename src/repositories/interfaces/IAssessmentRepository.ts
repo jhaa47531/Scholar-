@@ -1,9 +1,26 @@
 import {
   AssessmentRecord,
+  AuditLogEntry,
   SessionalConfig,
   SessionalNumber,
   SubmissionStatus,
+  UserRole,
 } from '../../types/domain.ts';
+
+export type AssessmentCorrectionFields = Pick<
+  Partial<AssessmentRecord>,
+  | 'obtainedMarks'
+  | 'examAttendance'
+  | 'classAttendancePct'
+  | 'assignmentScore'
+  | 'presentationScore'
+  | 'classInteractionScore'
+>;
+
+export interface AssessmentCorrectionResult {
+  assessment: AssessmentRecord;
+  auditLog: AuditLogEntry;
+}
 
 export interface IAssessmentRepository {
   // Sessional Configuration
@@ -13,6 +30,7 @@ export interface IAssessmentRepository {
 
   // Assessment Records
   getAssessment(studentId: string, subjectId: string, configId: string): Promise<AssessmentRecord | null>;
+  getAssessmentById(id: string): Promise<AssessmentRecord | null>;
   getSubjectAssessments(subjectId: string, configId: string): Promise<AssessmentRecord[]>;
   getStudentAssessments(studentId: string, sessionId: string, sessionalNumber?: SessionalNumber): Promise<AssessmentRecord[]>;
   
@@ -23,10 +41,13 @@ export interface IAssessmentRepository {
   finalSubmitBatch(teacherId: string, assessments: AssessmentRecord[]): Promise<AssessmentRecord[]>;
   
   // Correction
-  updateAssessmentWithCorrection(
+  correctAssessmentWithAudit(
     assessmentId: string,
-    updates: Partial<AssessmentRecord>,
+    updates: AssessmentCorrectionFields,
     correctionReason: string,
-    authorizedBy: string
-  ): Promise<AssessmentRecord>;
+    actorId: string,
+    actorRole: UserRole,
+    expectedAssessment: AssessmentRecord,
+    teacherId?: string
+  ): Promise<AssessmentCorrectionResult>;
 }

@@ -15,6 +15,7 @@ import {
   SubmissionStatus,
   UserRole,
 } from '../../types/domain.ts';
+import { AssessmentCorrectionFields } from '../../repositories/interfaces/IAssessmentRepository.ts';
 
 export const assessmentRouter = Router();
 
@@ -307,12 +308,15 @@ assessmentRouter.post(
   requireAuth,
   requireRole([UserRole.ADMIN, UserRole.TEACHER]),
   async (req: Request, res: Response) => {
-    const { assessmentId, updates, correctionReason } = req.body;
+    const body = req.body || {};
+    const { assessmentId, updates, correctionReason } = body;
 
     if (
-      !assessmentId ||
+      typeof assessmentId !== 'string' ||
+      !assessmentId.trim() ||
       !updates ||
       typeof updates !== 'object' ||
+      Array.isArray(updates) ||
       !correctionReason ||
       typeof correctionReason !== 'string' ||
       correctionReason.trim().length === 0
@@ -326,12 +330,27 @@ assessmentRouter.post(
     const authorizedBy = req.user!.email;
 
     try {
-      // Validate teacher assignment boundary if initiated by a teacher
-      if (req.user!.role === UserRole.TEACHER && updates.subjectId && updates.sessionId) {
+      const existing = await activeAssessmentRepo.getAssessmentById(assessmentId);
+      if (!existing) {
+        return res.status(404).json({ success: false, code: 'ASSESSMENT_NOT_FOUND', message: 'Assessment not found.' });
+      }
+
+      const teacherId = req.user!.role === UserRole.TEACHER
+        ? req.user!.teacherProfile?.id
+        : undefined;
+      if (req.user!.role === UserRole.TEACHER && !teacherId) {
+        return res.status(403).json({
+          success: false,
+          code: 'TEACHER_PROFILE_REQUIRED',
+          message: 'Teacher profile is required to authorize a correction.',
+        });
+      }
+
+      if (teacherId) {
         const isAssigned = await activeAcademicRepo.isTeacherAssignedToSubject(
-          req.user!.teacherProfile!.id,
-          updates.subjectId,
-          updates.sessionId
+          teacherId,
+          existing.subjectId,
+          existing.sessionId
         );
         if (!isAssigned) {
           return res.status(403).json({
@@ -342,41 +361,126 @@ assessmentRouter.post(
         }
       }
 
-      // Validate marks bounds if obtainedMarks is updated
-      if (updates.obtainedMarks !== undefined && updates.obtainedMarks !== null) {
-        if (updates.obtainedMarks < 0 || (updates.maxMarks && updates.obtainedMarks > updates.maxMarks)) {
+      const allowedFields = new Set([
+        'obtainedMarks',
+        'examAttendance',
+        'classAttendancePct',
+        'assignmentScore',
+        'presentationScore',
+        'classInteractionScore',
+      ]);
+      const updateEntries = Object.entries(updates as Record<string, unknown>);
+      if (
+        Object.getPrototypeOf(updates) !== Object.prototype ||
+        updateEntries.length === 0 ||
+        updateEntries.some(([field]) => !allowedFields.has(field))
+      ) {
+        return res.status(400).json({
+          success: false,
+          code: 'INVALID_CORRECTION_FIELDS',
+          message: 'Only score and attendance fields may be corrected.',
+        });
+      }
+
+      const correctionUpdates: AssessmentCorrectionFields = {};
+      for (const [field, value] of updateEntries) {
+        if (field === 'examAttendance') {
+          if (value !== ExamAttendance.ATTENDED && value !== ExamAttendance.NOT_ATTENDED) {
+            return res.status(400).json({ success: false, code: 'INVALID_CORRECTION_VALUE', message: 'Invalid correction value.' });
+          }
+          correctionUpdates.examAttendance = value;
+          continue;
+        }
+
+        if (value !== null && (typeof value !== 'number' || !Number.isFinite(value))) {
           return res.status(400).json({
             success: false,
-            message: `Invalid obtained marks: must be between 0 and maximum marks.`,
+            code: 'INVALID_CORRECTION_VALUE',
+            message: 'Numeric correction values must be finite numbers or null.',
           });
+        }
+
+        const maximum = field === 'obtainedMarks' ? existing.maxMarks : 100;
+        if (value !== null && ((value as number) < 0 || (value as number) > maximum)) {
+          return res.status(400).json({
+            success: false,
+            code: 'INVALID_CORRECTION_VALUE',
+            message: 'Correction value is outside the permitted range.',
+          });
+        }
+
+        switch (field) {
+          case 'obtainedMarks':
+            correctionUpdates.obtainedMarks = value as number | null;
+            break;
+          case 'classAttendancePct':
+            correctionUpdates.classAttendancePct = value as number | null;
+            break;
+          case 'assignmentScore':
+            correctionUpdates.assignmentScore = value as number | null;
+            break;
+          case 'presentationScore':
+            correctionUpdates.presentationScore = value as number | null;
+            break;
+          case 'classInteractionScore':
+            correctionUpdates.classInteractionScore = value as number | null;
+            break;
         }
       }
 
-      const corrected = await activeAssessmentRepo.updateAssessmentWithCorrection(
-        assessmentId,
-        updates,
-        correctionReason.trim(),
-        authorizedBy
-      );
+      if (
+        (correctionUpdates.examAttendance === ExamAttendance.NOT_ATTENDED ||
+          (correctionUpdates.examAttendance === undefined && existing.examAttendance === ExamAttendance.NOT_ATTENDED)) &&
+        correctionUpdates.obtainedMarks !== undefined &&
+        correctionUpdates.obtainedMarks !== 0
+      ) {
+        return res.status(400).json({
+          success: false,
+          code: 'ABSENT_MARKS_MUST_BE_ZERO',
+          message: 'An absent student must have zero exam marks.',
+        });
+      }
+      if (correctionUpdates.examAttendance === ExamAttendance.NOT_ATTENDED) {
+        correctionUpdates.obtainedMarks = 0;
+      }
 
-      // Record immutable audit log
-      await activeAuditRepo.recordAudit({
-        entityType: 'ASSESSMENT',
-        entityId: assessmentId,
-        action: 'CORRECTION',
-        actorId: authorizedBy,
-        actorRole: req.user!.role,
-        reason: correctionReason.trim(),
-        newData: updates as Record<string, unknown>,
-      });
+      const corrected = await activeAssessmentRepo.correctAssessmentWithAudit(
+        assessmentId,
+        correctionUpdates,
+        correctionReason.trim(),
+        authorizedBy,
+        req.user!.role,
+        existing,
+        teacherId
+      );
 
       res.json({
         success: true,
         message: 'Assessment correction applied and recorded in immutable audit log.',
-        data: corrected,
+        data: corrected.assessment,
       });
-    } catch (err: any) {
-      return res.status(400).json({ success: false, message: err.message });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '';
+      if (errorMessage === 'UNAUTHORIZED_SUBJECT_ACCESS') {
+        return res.status(403).json({
+          success: false,
+          code: 'UNAUTHORIZED_SUBJECT_ACCESS',
+          message: 'Forbidden: You are not assigned to this subject.',
+        });
+      }
+      if (errorMessage === 'ASSESSMENT_CONTEXT_CHANGED') {
+        return res.status(409).json({
+          success: false,
+          code: 'ASSESSMENT_CONTEXT_CHANGED',
+          message: 'Assessment changed during correction. Reload and try again.',
+        });
+      }
+      console.error('[Assessment Correction] Correction and audit transaction failed.');
+      return res.status(500).json({
+        success: false,
+        code: 'CORRECTION_FAILED',
+        message: 'Correction could not be completed.',
+      });
     }
   }
 );

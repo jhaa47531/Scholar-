@@ -64,6 +64,33 @@ export async function safeParseJson<T>(res: Response, fallback: T): Promise<T> {
   }
 }
 
+function getSignInErrorMessage(error: unknown): string {
+  const code =
+    typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'string'
+      ? error.code
+      : '';
+
+  switch (code) {
+    case 'auth/invalid-email':
+      return 'Enter a valid email address.';
+    case 'auth/invalid-credential':
+    case 'auth/invalid-login-credentials':
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+      return 'The email or password is incorrect.';
+    case 'auth/user-disabled':
+      return 'This account is disabled. Contact your administrator.';
+    case 'auth/too-many-requests':
+      return 'Too many sign-in attempts. Try again later.';
+    case 'auth/network-request-failed':
+      return 'Unable to reach the authentication service. Check your connection.';
+    case 'auth/operation-not-allowed':
+      return 'Email and password sign-in is not enabled. Contact your administrator.';
+    default:
+      return 'Sign-in failed. Check your email and password, then try again.';
+  }
+}
+
 export async function authFetch(
   url: string,
   options: RequestInit = {},
@@ -132,46 +159,26 @@ export const api = {
     }
   },
 
-  loginAs: async (email: string): Promise<any> => {
-    // 1. Try real Firebase token generation first
+  signInWithEmailAndPassword: async (
+    email: string,
+    password: string
+  ): Promise<{ success: boolean; token?: string; message?: string }> => {
     try {
-      const fbRes = await fetch('/api/auth/firebase-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
-      });
-      const fbData = await safeParseJson<any>(fbRes, null);
-      if (fbData && fbData.success && fbData.customToken) {
-        const { auth } = await import('../config/firebase.ts');
-        const { signInWithCustomToken } = await import('firebase/auth');
-        if (auth) {
-          const cred = await signInWithCustomToken(auth, fbData.customToken);
-          const realIdToken = await cred.user.getIdToken(true);
-          setApiAuthToken(realIdToken);
-          return { success: true, token: realIdToken, user: fbData.user };
-        }
-      } else if (fbData && fbData.success && fbData.token) {
-        setApiAuthToken(fbData.token);
-        return fbData;
+      const { auth } = await import('../config/firebase.ts');
+      if (!auth) {
+        return {
+          success: false,
+          message: 'Firebase Authentication is not configured. Contact your administrator.',
+        };
       }
-    } catch (err) {
-      console.warn('[API] Firebase login fallback:', err);
-    }
 
-    // 2. Standard dev token fallback
-    try {
-      const res = await fetch('/api/auth/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
-      });
-      const devData = await safeParseJson<any>(res, { success: false, message: 'Authentication server unavailable' });
-      if (devData.success && devData.token) {
-        setApiAuthToken(devData.token);
-      }
-      return devData;
-    } catch (err: any) {
-      return { success: false, message: err.message || 'Login failed' };
+      const { signInWithEmailAndPassword: signIn } = await import('firebase/auth');
+      const credential = await signIn(auth, email.trim(), password);
+      const token = await credential.user.getIdToken();
+      setApiAuthToken(token);
+      return { success: true, token };
+    } catch (error) {
+      return { success: false, message: getSignInErrorMessage(error) };
     }
   },
 

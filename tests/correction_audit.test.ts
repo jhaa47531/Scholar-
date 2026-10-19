@@ -23,36 +23,34 @@ describe('Assessment Correction & Immutable Audit Verification', () => {
     const correctionReason = 'Re-evaluation of Question 4 per Dean approval (Grievance #G2025-09)';
     const authorizedBy = 'admin@institution.edu';
 
-    const corrected = await activeAssessmentRepo.updateAssessmentWithCorrection(
+    const result = await activeAssessmentRepo.correctAssessmentWithAudit(
       existing.id,
       { obtainedMarks: newMarks },
       correctionReason,
-      authorizedBy
+      authorizedBy,
+      UserRole.ADMIN,
+      existing
     );
+    const corrected = result.assessment;
 
     assert.equal(corrected.obtainedMarks, newMarks);
     assert.equal(corrected.correctionReason, correctionReason);
     assert.equal(corrected.correctionAuthorizedBy, authorizedBy);
 
-    // 3. Record in audit trail
-    const auditRecord = await activeAuditRepo.recordAudit({
-      entityType: 'ASSESSMENT',
-      entityId: existing.id,
-      action: 'CORRECTION',
-      actorId: authorizedBy,
-      actorRole: UserRole.ADMIN,
-      reason: correctionReason,
-      previousData: { obtainedMarks: oldMarks },
-      newData: { obtainedMarks: newMarks },
-    });
+    assert.ok(result.auditLog.id);
+    assert.equal(result.auditLog.previousData?.obtainedMarks, oldMarks);
+    assert.equal(result.auditLog.newData?.obtainedMarks, newMarks);
+    assert.equal(result.auditLog.actorId, authorizedBy);
+    assert.equal(result.auditLog.actorRole, UserRole.ADMIN);
+    assert.equal(result.auditLog.reason, correctionReason);
+    assert.ok(Number.isFinite(Date.parse(result.auditLog.timestamp)));
 
-    assert.ok(auditRecord.id);
-
-    // 4. Query audit logs to confirm persistence
+    // Confirm the correction operation persisted the audit record as part of the operation.
     const logs = await activeAuditRepo.getAuditLogs('ASSESSMENT', existing.id);
-    assert.ok(logs.length >= 1);
     const foundCorrection = logs.find((l) => l.action === 'CORRECTION' && l.reason === correctionReason);
     assert.ok(foundCorrection, 'Correction record must be found in persistent audit logs');
-    assert.equal(foundCorrection?.actorId, 'admin@institution.edu');
+    assert.equal(foundCorrection?.actorId, authorizedBy);
+    assert.equal(foundCorrection?.previousData?.obtainedMarks, oldMarks);
+    assert.equal(foundCorrection?.newData?.obtainedMarks, newMarks);
   });
 });

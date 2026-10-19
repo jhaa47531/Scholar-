@@ -3,7 +3,12 @@ import assert from 'node:assert/strict';
 import request from 'supertest';
 import { createApp } from '../src/server/app.ts';
 import { initializeFirebaseAdmin } from '../src/server/auth/firebaseAdmin.ts';
-import { initializeRepositories, activeAssessmentRepo, activeAuditRepo } from '../src/repositories/index.ts';
+import {
+  initializeRepositories,
+  activeAssessmentRepo,
+  activeAuditRepo,
+  inMemoryAuditRepo,
+} from '../src/repositories/index.ts';
 import { ExamAttendance, SessionalNumber, SubmissionStatus } from '../src/types/domain.ts';
 
 const app = createApp();
@@ -165,6 +170,8 @@ describe('Security Fixes Verification Suite', () => {
 
     it('POST /api/assessments/correction applies authorized change and logs immutable CORRECTION audit', async () => {
       const reason = 'Dean approved mark re-tallying for Q3';
+      const previous = await activeAssessmentRepo.getAssessmentById(testAssessmentId);
+      assert.ok(previous);
       const res = await request(app)
         .post('/api/assessments/correction')
         .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
@@ -178,12 +185,129 @@ describe('Security Fixes Verification Suite', () => {
       assert.equal(res.body.success, true);
       assert.equal(res.body.data.obtainedMarks, 23.5);
       assert.equal(res.body.data.correctionReason, reason);
+      assert.equal(res.body.data.studentId, previous.studentId);
+      assert.equal(res.body.data.subjectId, previous.subjectId);
+      assert.equal(res.body.data.sessionId, previous.sessionId);
 
-      // Verify audit log entry was created
       const logs = await activeAuditRepo.getAuditLogs('ASSESSMENT', testAssessmentId);
       const correctionLog = logs.find((l) => l.action === 'CORRECTION' && l.reason === reason);
       assert.ok(correctionLog, 'Correction audit record must exist');
       assert.equal(correctionLog?.actorRole, 'ADMIN');
+      assert.equal(correctionLog?.actorId, 'admin@institution.edu');
+      assert.equal(correctionLog?.previousData?.obtainedMarks, previous.obtainedMarks);
+      assert.equal(correctionLog?.newData?.obtainedMarks, 23.5);
+      assert.equal(correctionLog?.newData?.correctionReason, reason);
+      assert.ok(Number.isFinite(Date.parse(correctionLog!.timestamp)));
+    });
+
+    it('authorizes an assigned teacher from stored subject/session when request omits both fields', async () => {
+      const res = await request(app)
+        .post('/api/assessments/correction')
+        .set('Authorization', `Bearer ${TEACHER_SHARMA_TOKEN}`)
+        .send({
+          assessmentId: testAssessmentId,
+          updates: { obtainedMarks: 22 },
+          correctionReason: 'Approved teacher correction with stored assignment context',
+        });
+
+      assert.equal(res.status, 200);
+      assert.equal(res.body.data.obtainedMarks, 22);
+      assert.equal(res.body.data.subjectId, 'sub_bca101');
+      assert.equal(res.body.data.sessionId, 'sess_2025_26');
+    });
+
+    it('rejects forged subject/session fields instead of using them for authorization', async () => {
+      const before = await activeAssessmentRepo.getAssessmentById(testAssessmentId);
+      assert.ok(before);
+      const res = await request(app)
+        .post('/api/assessments/correction')
+        .set('Authorization', `Bearer ${TEACHER_SHARMA_TOKEN}`)
+        .send({
+          assessmentId: testAssessmentId,
+          updates: {
+            obtainedMarks: 20,
+            subjectId: 'sub_bt101',
+            sessionId: 'sess_2026_27',
+          },
+          correctionReason: 'Attempted forged authorization context',
+        });
+
+      assert.equal(res.status, 400);
+      assert.equal(res.body.code, 'INVALID_CORRECTION_FIELDS');
+      assert.deepEqual(await activeAssessmentRepo.getAssessmentById(testAssessmentId), before);
+    });
+
+    it('denies a teacher who is not assigned to the stored assessment subject/session', async () => {
+      const before = await activeAssessmentRepo.getAssessmentById(testAssessmentId);
+      assert.ok(before);
+      const res = await request(app)
+        .post('/api/assessments/correction')
+        .set('Authorization', 'Bearer SPIS_SECURE_TOKEN_gupta@faculty.edu')
+        .send({
+          assessmentId: testAssessmentId,
+          updates: { obtainedMarks: 19 },
+          correctionReason: 'Attempted correction without assignment',
+        });
+
+      assert.equal(res.status, 403);
+      assert.equal(res.body.code, 'UNAUTHORIZED_SUBJECT_ACCESS');
+      assert.deepEqual(await activeAssessmentRepo.getAssessmentById(testAssessmentId), before);
+    });
+
+    it('rejects attempts to change assessment identity and ownership fields', async () => {
+      const protectedFields = [
+        'id',
+        'studentId',
+        'submittingTeacherId',
+        'subjectId',
+        'sessionId',
+        'configId',
+        'semester',
+        'sessionalNumber',
+      ];
+      const before = await activeAssessmentRepo.getAssessmentById(testAssessmentId);
+      assert.ok(before);
+
+      for (const field of protectedFields) {
+        const res = await request(app)
+          .post('/api/assessments/correction')
+          .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
+          .send({
+            assessmentId: testAssessmentId,
+            updates: { obtainedMarks: 18, [field]: 'forged-value' },
+            correctionReason: `Attempted identity update: ${field}`,
+          });
+        assert.equal(res.status, 400, `Expected ${field} to be immutable`);
+        assert.equal(res.body.code, 'INVALID_CORRECTION_FIELDS');
+      }
+
+      assert.deepEqual(await activeAssessmentRepo.getAssessmentById(testAssessmentId), before);
+    });
+
+    it('does not apply the correction when audit persistence fails', async () => {
+      const before = await activeAssessmentRepo.getAssessmentById(testAssessmentId);
+      assert.ok(before);
+      const originalRecordAudit = inMemoryAuditRepo.recordAudit.bind(inMemoryAuditRepo);
+      inMemoryAuditRepo.recordAudit = async () => {
+        throw new Error('simulated audit persistence failure');
+      };
+
+      try {
+        const res = await request(app)
+          .post('/api/assessments/correction')
+          .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
+          .send({
+            assessmentId: testAssessmentId,
+            updates: { obtainedMarks: 17 },
+            correctionReason: 'Audit failure rollback test',
+          });
+
+        assert.equal(res.status, 500);
+        assert.equal(res.body.code, 'CORRECTION_FAILED');
+        assert.deepEqual(await activeAssessmentRepo.getAssessmentById(testAssessmentId), before);
+      } finally {
+        inMemoryAuditRepo.recordAudit = originalRecordAudit;
+      }
     });
   });
 });

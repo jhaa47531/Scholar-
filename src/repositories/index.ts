@@ -11,8 +11,8 @@ import { CloudFirestoreAuditRepository } from './firestore/CloudFirestoreAuditRe
 
 // 1. Preserved In-Memory Repositories (Always Available for Offline/Testing)
 export const inMemoryAcademicRepo = new InMemoryAcademicRepository();
-export const inMemoryAssessmentRepo = new InMemoryAssessmentRepository();
 export const inMemoryAuditRepo = new InMemoryAuditRepository();
+export const inMemoryAssessmentRepo = new InMemoryAssessmentRepository(inMemoryAuditRepo);
 
 // 2. Real Cloud Firestore Repositories (Active when Firebase credentials are configured)
 let cloudAcademicRepo: CloudFirestoreAcademicRepository | null = null;

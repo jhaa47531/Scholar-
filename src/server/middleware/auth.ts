@@ -33,11 +33,18 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     const userContext = await verifyTokenAndResolveUser(token);
     req.user = userContext;
     next();
-  } catch (err: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : '';
+    const failureCode = errorMessage.match(/^([A-Z][A-Z0-9_]*)(?::([A-Za-z0-9_/-]+))?/);
+    const safeFailure = failureCode
+      ? [failureCode[1], failureCode[2]].filter(Boolean).join(':')
+      : 'UNKNOWN_AUTH_ERROR';
+    console.error(`[Auth] Authentication rejected (${safeFailure}).`);
+
     return res.status(401).json({
       success: false,
       code: 'INVALID_TOKEN',
-      message: `Authentication failed: ${err.message}`,
+      message: 'Authentication failed. Please sign in again.',
     });
   }
 }

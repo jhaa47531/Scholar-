@@ -7,6 +7,10 @@ import { activeAcademicRepo } from '../../repositories/index.ts';
 let firebaseAdminApp: App | null = null;
 let firebaseFirestoreDb: Firestore | null = null;
 
+export function isDevelopmentAuthEnabled(): boolean {
+  return process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+}
+
 export function initializeFirebaseAdmin(): App | null {
   if (firebaseAdminApp) {
     return firebaseAdminApp;
@@ -163,6 +167,30 @@ export interface AuthenticatedUserContext {
   studentProfile?: StudentProfile;
 }
 
+function getSafeAuthErrorCode(error: unknown): string {
+  if (error instanceof Error) {
+    const prefixedCode = error.message.match(/^([A-Z][A-Z0-9_]*):/)?.[1];
+    if (prefixedCode) return prefixedCode;
+  }
+
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    const code = error.code;
+    if ((typeof code === 'string' || typeof code === 'number') && /^[A-Za-z0-9_/-]{1,64}$/.test(String(code))) {
+      return String(code);
+    }
+  }
+
+  return 'UNKNOWN';
+}
+
+async function resolveUserByEmailWithDiagnostics(email: string, uid: string): Promise<AuthenticatedUserContext> {
+  try {
+    return await resolveUserByEmail(email, uid);
+  } catch (error) {
+    throw new Error(`ACCOUNT_RESOLUTION_FAILED:${getSafeAuthErrorCode(error)}`);
+  }
+}
+
 /**
  * Verifies an authentication bearer token and resolves trusted institutional role.
  * 1. If it is a development/testing token ("SPIS_SECURE_TOKEN_<email>"), securely resolves seed account.
@@ -176,31 +204,36 @@ export async function verifyTokenAndResolveUser(idToken: string): Promise<Authen
 
   const cleanToken = idToken.trim();
 
-  // 1. Structured Token Verification (For Development, CI & Supertest)
+  // Development tokens are accepted only in explicitly non-production environments.
   if (cleanToken.startsWith('SPIS_SECURE_TOKEN_')) {
+    if (!isDevelopmentAuthEnabled()) {
+      throw new Error('DEVELOPMENT_AUTH_DISABLED');
+    }
     const parts = cleanToken.split('_');
     const email = parts.slice(3).join('_');
     if (!email || !email.includes('@')) {
       throw new Error('INVALID_TOKEN_FORMAT: Malformed authorization token.');
     }
-    return resolveUserByEmail(email, `uid_${email.replace(/[@.]/g, '_')}`);
+    return resolveUserByEmailWithDiagnostics(email, `uid_${email.replace(/[@.]/g, '_')}`);
   }
 
   // 2. Real Firebase ID token cryptographic verification via Firebase Admin SDK
   if (firebaseAdminApp) {
+    let decoded;
     try {
-      const decoded = await getAuth(firebaseAdminApp).verifyIdToken(cleanToken);
-      const email = decoded.email;
-      if (!email) {
-        throw new Error('TOKEN_EMAIL_MISSING: Firebase token does not contain a verified email.');
-      }
-      return resolveUserByEmail(email, decoded.uid);
-    } catch (err: any) {
-      throw new Error(`INVALID_FIREBASE_TOKEN: ${err.message}`);
+      decoded = await getAuth(firebaseAdminApp).verifyIdToken(cleanToken);
+    } catch (error) {
+      throw new Error(`TOKEN_VERIFICATION_FAILED:${getSafeAuthErrorCode(error)}`);
     }
+
+    if (!decoded.email) {
+      throw new Error('TOKEN_EMAIL_MISSING');
+    }
+
+    return resolveUserByEmailWithDiagnostics(decoded.email, decoded.uid);
   }
 
-  throw new Error('INVALID_OR_EXPIRED_TOKEN: Token verification failed.');
+  throw new Error('TOKEN_VERIFICATION_UNAVAILABLE');
 }
 
 async function resolveUserByEmail(email: string, uid: string): Promise<AuthenticatedUserContext> {

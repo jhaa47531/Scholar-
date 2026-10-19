@@ -66,7 +66,8 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-  const [customEmailInput, setCustomEmailInput] = useState('');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
 
   // Active Navigation Page
   const [activePage, setActivePage] = useState<string>('overview');
@@ -174,22 +175,23 @@ export default function App() {
     };
   }, []);
 
-  const handleLogin = async (email: string) => {
+  const handleLogin = async (email: string, password: string) => {
     setAuthLoading(true);
     setAuthError(null);
     try {
-      const data = await api.loginAs(email);
+      const data = await api.signInWithEmailAndPassword(email, password);
       if (data.success && data.token) {
         setApiAuthToken(data.token);
         setAuthToken(data.token);
         setIsLoginModalOpen(false);
         await verifySession(data.token);
       } else {
-        setAuthError(data.message || 'Authentication rejected');
+        setAuthError(data.message || 'Sign-in failed. Check your email and password.');
       }
-    } catch (err: any) {
-      setAuthError('Login request failed: ' + err.message);
+    } catch {
+      setAuthError('Sign-in failed. Check your email and password, then try again.');
     } finally {
+      setLoginPassword('');
       setAuthLoading(false);
     }
   };
@@ -415,7 +417,7 @@ export default function App() {
           <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-300 flex items-start gap-2.5">
             <Lock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
             <span>
-              Server-Verified Authentication Active. Separate portals for Institutional Admin, Faculty, and Students.
+              Sign in with your Firebase email and password. Your institutional role and profile are verified by the server.
             </span>
           </div>
 
@@ -429,84 +431,41 @@ export default function App() {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                if (customEmailInput.trim()) {
-                  handleLogin(customEmailInput.trim());
+                if (loginEmail.trim() && loginPassword) {
+                  handleLogin(loginEmail.trim(), loginPassword);
                 }
               }}
-              className="space-y-2 pb-4 border-b border-slate-800"
+              className="space-y-3"
             >
               <label className="text-xs font-semibold text-slate-300 block">
-                Sign in with Institutional Email:
+                Institutional account:
               </label>
-              <div className="flex gap-2">
-                <input
-                  type="email"
-                  value={customEmailInput}
-                  onChange={(e) => setCustomEmailInput(e.target.value)}
-                  placeholder="e.g. admin@institution.edu"
-                  className="flex-1 bg-slate-900 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
-                />
-                <button
-                  type="submit"
-                  disabled={authLoading || !customEmailInput.trim()}
-                  className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer shadow-sm"
-                >
-                  Sign In
-                </button>
-              </div>
+              <input
+                type="email"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                autoComplete="username"
+                required
+                placeholder="Institutional email"
+                className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+              />
+              <input
+                type="password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                autoComplete="current-password"
+                required
+                placeholder="Password"
+                className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+              />
+              <button
+                type="submit"
+                disabled={authLoading || !loginEmail.trim() || !loginPassword}
+                className="w-full px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer shadow-sm"
+              >
+                {authLoading ? 'Signing in...' : 'Sign In'}
+              </button>
             </form>
-
-            <div className="space-y-2.5">
-              <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider font-mono flex items-center justify-between">
-                <span>Quick Persona Access:</span>
-                <span className="text-emerald-400 text-[10px]">Active RBAC</span>
-              </div>
-
-              <button
-                onClick={() => handleLogin('admin@institution.edu')}
-                className="w-full p-3 rounded-xl bg-slate-900/90 hover:bg-slate-850 border border-slate-800 text-left transition-all flex items-center justify-between group cursor-pointer"
-              >
-                <div>
-                  <div className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
-                    Prof. Eleanor Vance (Dean)
-                  </div>
-                  <div className="text-[11px] text-slate-400">admin@institution.edu</div>
-                </div>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 font-mono font-bold border border-amber-500/20">
-                  ADMIN
-                </span>
-              </button>
-
-              <button
-                onClick={() => handleLogin('sharma@faculty.edu')}
-                className="w-full p-3 rounded-xl bg-slate-900/90 hover:bg-slate-850 border border-slate-800 text-left transition-all flex items-center justify-between group cursor-pointer"
-              >
-                <div>
-                  <div className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
-                    Dr. Rajesh Sharma (Faculty)
-                  </div>
-                  <div className="text-[11px] text-slate-400">sharma@faculty.edu (Assigned: BCA-101)</div>
-                </div>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-sky-500/10 text-sky-300 font-mono font-bold border border-sky-500/20">
-                  TEACHER
-                </span>
-              </button>
-
-              <button
-                onClick={() => handleLogin('aarav.patel@student.edu')}
-                className="w-full p-3 rounded-xl bg-slate-900/90 hover:bg-slate-850 border border-slate-800 text-left transition-all flex items-center justify-between group cursor-pointer"
-              >
-                <div>
-                  <div className="text-xs font-bold text-white group-hover:text-amber-300 transition-colors">
-                    Aarav Patel (Enrolled Student)
-                  </div>
-                  <div className="text-[11px] text-slate-400">aarav.patel@student.edu (Roll: BCA-01)</div>
-                </div>
-                <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-300 font-mono font-bold border border-emerald-500/20">
-                  STUDENT
-                </span>
-              </button>
-            </div>
           </div>
         </div>
       </div>
