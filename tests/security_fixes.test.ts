@@ -291,6 +291,9 @@ describe('Security Fixes Verification Suite', () => {
       inMemoryAuditRepo.recordAudit = async () => {
         throw new Error('simulated audit persistence failure');
       };
+      (activeAssessmentRepo as any).auditFailureHook = () => {
+        throw new Error('simulated audit persistence failure');
+      };
 
       try {
         const res = await request(app)
@@ -307,6 +310,7 @@ describe('Security Fixes Verification Suite', () => {
         assert.deepEqual(await activeAssessmentRepo.getAssessmentById(testAssessmentId), before);
       } finally {
         inMemoryAuditRepo.recordAudit = originalRecordAudit;
+        delete (activeAssessmentRepo as any).auditFailureHook;
       }
     });
   });

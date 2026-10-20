@@ -7,13 +7,17 @@ import {
   TeacherProfile,
   UserAccount,
   UserRole,
+  AcademicCycle,
+  FeePaymentStatus,
+  CourseFeeStructure,
+  StudentFeeRecord,
 } from '../../types/domain.ts';
 import { IAcademicRepository } from '../interfaces/IAcademicRepository.ts';
 
 /**
  * Academic Repository Implementation
- * Maps to Firestore collections: courseStructures, academicSessions, subjects, students, teachers, teacherAssignments, users
- * Future Oracle Mapping: SPIS_COURSE_STRUCTURES, SPIS_ACADEMIC_SESSIONS, SPIS_SUBJECTS, SPIS_STUDENTS, SPIS_TEACHERS, SPIS_TEACHER_ASSIGNMENTS, SPIS_USERS
+ * Maps to Firestore collections: courseStructures, academicSessions, subjects, students, teachers, teacherAssignments, users, feeStructures, studentFeeRecords
+ * Future Oracle Mapping: SPIS_COURSE_STRUCTURES, SPIS_ACADEMIC_SESSIONS, SPIS_SUBJECTS, SPIS_STUDENTS, SPIS_TEACHERS, SPIS_TEACHER_ASSIGNMENTS, SPIS_USERS, SPIS_FEE_STRUCTURES, SPIS_STUDENT_FEES
  */
 export class AcademicRepository implements IAcademicRepository {
   private sessions: Map<string, AcademicSession> = new Map();
@@ -23,6 +27,8 @@ export class AcademicRepository implements IAcademicRepository {
   private teachers: Map<string, TeacherProfile> = new Map();
   private assignments: Map<string, TeacherAssignment> = new Map();
   private users: Map<string, UserAccount> = new Map();
+  private feeStructures: Map<string, CourseFeeStructure> = new Map();
+  private studentFeeRecords: Map<string, StudentFeeRecord> = new Map();
 
   constructor() {
     this.seedDefaultAcademicData();
@@ -95,6 +101,35 @@ export class AcademicRepository implements IAcademicRepository {
       { id: 'asg_gupta_bca104a', teacherId: 'tch_gupta', subjectId: 'sub_bca104_el1', sessionId: 'sess_2025_26', semester: 1, isActive: true, assignedAt: new Date().toISOString() },
     ];
     for (const a of defaultAssignments) this.assignments.set(a.id, a);
+
+    // 8. Fee Structures (Preserving institutional rule: Fees collected one semester in advance; June=Even cycle, Dec=Odd cycle)
+    const defaultFees: CourseFeeStructure[] = [
+      { id: 'fee_bca_s1', courseId: 'crs_bca', semester: 1, academicCycle: AcademicCycle.ODD_DECEMBER, tuitionFee: 25000, examinationFee: 3000, laboratoryFee: 3000, libraryFee: 1000, totalFee: 32000, advanceCollectionSemester: 2, ruleNotes: 'Fees collected 1 semester in advance; Dec cycle' },
+      { id: 'fee_bca_s2', courseId: 'crs_bca', semester: 2, academicCycle: AcademicCycle.EVEN_JUNE, tuitionFee: 25000, examinationFee: 3000, laboratoryFee: 3000, libraryFee: 1000, totalFee: 32000, advanceCollectionSemester: 3, ruleNotes: 'Fees collected 1 semester in advance; June cycle' },
+      { id: 'fee_bba_s1', courseId: 'crs_bba', semester: 1, academicCycle: AcademicCycle.ODD_DECEMBER, tuitionFee: 24000, examinationFee: 3000, laboratoryFee: 2000, libraryFee: 1000, totalFee: 30000, advanceCollectionSemester: 2, ruleNotes: 'Fees collected 1 semester in advance; Dec cycle' },
+      { id: 'fee_bcom_s1', courseId: 'crs_bcom', semester: 1, academicCycle: AcademicCycle.ODD_DECEMBER, tuitionFee: 19000, examinationFee: 2500, laboratoryFee: 1500, libraryFee: 1000, totalFee: 24000, advanceCollectionSemester: 2, ruleNotes: 'Fees collected 1 semester in advance; Dec cycle' },
+      { id: 'fee_ba_s1', courseId: 'crs_ba', semester: 1, academicCycle: AcademicCycle.ODD_DECEMBER, tuitionFee: 16000, examinationFee: 2000, laboratoryFee: 1000, libraryFee: 1000, totalFee: 20000, advanceCollectionSemester: 2, ruleNotes: 'Fees collected 1 semester in advance; Dec cycle' },
+      { id: 'fee_btech_s1', courseId: 'crs_btech', semester: 1, academicCycle: AcademicCycle.ODD_DECEMBER, tuitionFee: 42000, examinationFee: 4000, laboratoryFee: 6000, libraryFee: 3000, totalFee: 55000, advanceCollectionSemester: 2, ruleNotes: 'Fees collected 1 semester in advance; Dec cycle' },
+      { id: 'fee_mca_s1', courseId: 'crs_mca', semester: 1, academicCycle: AcademicCycle.ODD_DECEMBER, tuitionFee: 34000, examinationFee: 3500, laboratoryFee: 3000, libraryFee: 1500, totalFee: 42000, advanceCollectionSemester: 2, ruleNotes: 'Fees collected 1 semester in advance; Dec cycle' },
+      { id: 'fee_mba_s1', courseId: 'crs_mba', semester: 1, academicCycle: AcademicCycle.ODD_DECEMBER, tuitionFee: 38000, examinationFee: 4000, laboratoryFee: 4000, libraryFee: 2000, totalFee: 48000, advanceCollectionSemester: 2, ruleNotes: 'Fees collected 1 semester in advance; Dec cycle' },
+    ];
+    for (const f of defaultFees) this.feeStructures.set(f.id, f);
+
+    // 9. Initial Student Fee Records
+    const defaultStudentFees: StudentFeeRecord[] = [
+      // Aarav: Sem 1 Paid + Sem 2 Advance Paid
+      { id: 'stf_aarav_s1', studentId: 'stu_aarav', courseId: 'crs_bca', currentSemester: 1, assessedSemester: 1, academicCycle: AcademicCycle.ODD_DECEMBER, totalFee: 32000, paidAmount: 32000, balance: 0, status: FeePaymentStatus.PAID, dueDate: '2025-08-15', paidAt: '2025-08-10T10:30:00Z', receiptNumber: 'REC-2025-BCA-0012', isAdvancePayment: false },
+      { id: 'stf_aarav_s2_adv', studentId: 'stu_aarav', courseId: 'crs_bca', currentSemester: 1, assessedSemester: 2, academicCycle: AcademicCycle.EVEN_JUNE, totalFee: 32000, paidAmount: 32000, balance: 0, status: FeePaymentStatus.PAID, dueDate: '2025-12-10', paidAt: '2025-12-05T14:15:00Z', receiptNumber: 'REC-2025-BCA-0044', isAdvancePayment: true },
+
+      // Diya: Sem 1 Paid + Sem 2 Advance Partial (Due in Dec cycle)
+      { id: 'stf_diya_s1', studentId: 'stu_diya', courseId: 'crs_bca', currentSemester: 1, assessedSemester: 1, academicCycle: AcademicCycle.ODD_DECEMBER, totalFee: 32000, paidAmount: 32000, balance: 0, status: FeePaymentStatus.PAID, dueDate: '2025-08-15', paidAt: '2025-08-12T11:00:00Z', receiptNumber: 'REC-2025-BCA-0015', isAdvancePayment: false },
+      { id: 'stf_diya_s2_adv', studentId: 'stu_diya', courseId: 'crs_bca', currentSemester: 1, assessedSemester: 2, academicCycle: AcademicCycle.EVEN_JUNE, totalFee: 32000, paidAmount: 16000, balance: 16000, status: FeePaymentStatus.PARTIAL, dueDate: '2025-12-10', paidAt: '2025-12-01T09:20:00Z', receiptNumber: 'REC-2025-BCA-0048', isAdvancePayment: true },
+
+      // Kabir: Sem 1 Paid + Sem 2 Advance Pending
+      { id: 'stf_kabir_s1', studentId: 'stu_kabir', courseId: 'crs_bca', currentSemester: 1, assessedSemester: 1, academicCycle: AcademicCycle.ODD_DECEMBER, totalFee: 32000, paidAmount: 32000, balance: 0, status: FeePaymentStatus.PAID, dueDate: '2025-08-15', paidAt: '2025-08-14T16:45:00Z', receiptNumber: 'REC-2025-BCA-0021', isAdvancePayment: false },
+      { id: 'stf_kabir_s2_adv', studentId: 'stu_kabir', courseId: 'crs_bca', currentSemester: 1, assessedSemester: 2, academicCycle: AcademicCycle.EVEN_JUNE, totalFee: 32000, paidAmount: 0, balance: 32000, status: FeePaymentStatus.PENDING, dueDate: '2025-12-10', isAdvancePayment: true },
+    ];
+    for (const sf of defaultStudentFees) this.studentFeeRecords.set(sf.id, sf);
   }
 
   async getSessions(): Promise<AcademicSession[]> {
@@ -217,6 +252,60 @@ export class AcademicRepository implements IAcademicRepository {
   async createUser(user: UserAccount): Promise<UserAccount> {
     this.users.set(user.id, user);
     return user;
+  }
+
+  async getFeeStructures(courseId?: string): Promise<CourseFeeStructure[]> {
+    let list = Array.from(this.feeStructures.values());
+    if (courseId) list = list.filter((f) => f.courseId === courseId);
+    return list;
+  }
+
+  async getStudentFeeRecords(studentId?: string): Promise<StudentFeeRecord[]> {
+    let list = Array.from(this.studentFeeRecords.values());
+    if (studentId) list = list.filter((r) => r.studentId === studentId);
+    return list;
+  }
+
+  async recordFeePayment(payment: {
+    studentId: string;
+    amount: number;
+    assessedSemester?: number;
+    receiptNumber?: string;
+  }): Promise<StudentFeeRecord> {
+    const records = Array.from(this.studentFeeRecords.values()).filter(
+      (r) => r.studentId === payment.studentId && (payment.assessedSemester === undefined || r.assessedSemester === payment.assessedSemester)
+    );
+
+    let target = records.find((r) => r.status !== FeePaymentStatus.PAID) || records[0];
+
+    if (!target) {
+      // Create new advance record
+      const id = `stf_${payment.studentId}_s${payment.assessedSemester || 2}`;
+      target = {
+        id,
+        studentId: payment.studentId,
+        courseId: 'crs_bca',
+        currentSemester: 1,
+        assessedSemester: payment.assessedSemester || 2,
+        academicCycle: (payment.assessedSemester || 2) % 2 === 0 ? AcademicCycle.EVEN_JUNE : AcademicCycle.ODD_DECEMBER,
+        totalFee: 32000,
+        paidAmount: 0,
+        balance: 32000,
+        status: FeePaymentStatus.PENDING,
+        dueDate: '2026-01-15',
+        isAdvancePayment: true,
+      };
+      this.studentFeeRecords.set(id, target);
+    }
+
+    target.paidAmount += payment.amount;
+    target.balance = Math.max(0, target.totalFee - target.paidAmount);
+    target.status = target.balance === 0 ? FeePaymentStatus.PAID : target.paidAmount > 0 ? FeePaymentStatus.PARTIAL : FeePaymentStatus.PENDING;
+    target.paidAt = new Date().toISOString();
+    target.receiptNumber = payment.receiptNumber || `REC-${Date.now().toString().slice(-6)}`;
+
+    this.studentFeeRecords.set(target.id, target);
+    return target;
   }
 }
 

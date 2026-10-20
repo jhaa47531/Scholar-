@@ -9,7 +9,7 @@ interface Academic3DGaugeProps {
   strokeWidth?: number;
   unit?: string;
   gradeTier?: string;
-  colorScheme?: 'gold' | 'emerald' | 'cyan';
+  colorScheme?: 'gold' | 'emerald' | 'cyan' | 'indigo';
 }
 
 export const Academic3DGauge: React.FC<Academic3DGaugeProps> = ({
@@ -21,7 +21,7 @@ export const Academic3DGauge: React.FC<Academic3DGaugeProps> = ({
   strokeWidth = 14,
   unit = '%',
   gradeTier,
-  colorScheme = 'gold',
+  colorScheme = 'indigo',
 }) => {
   const percentage = Math.min(100, Math.max(0, (value / maxValue) * 100));
   const radius = (size - strokeWidth) / 2;
@@ -33,7 +33,7 @@ export const Academic3DGauge: React.FC<Academic3DGaugeProps> = ({
   const gradientId = `gaugeGrad_${colorScheme}_${label.replace(/\s+/g, '')}`;
 
   return (
-    <div className="flex flex-col items-center justify-center p-4 rounded-xl surface-navy card-3d">
+    <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-white border border-slate-200 shadow-xs">
       <div className="relative" style={{ width: size, height: size * 0.85 }}>
         <svg
           width={size}
@@ -42,31 +42,26 @@ export const Academic3DGauge: React.FC<Academic3DGaugeProps> = ({
           className="transform rotate-[135deg] overflow-visible"
         >
           <defs>
-            {/* 3D Depth Shadow Filter */}
-            <filter id="gaugeShadow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#000000" floodOpacity="0.6" />
-            </filter>
-
             {/* Gradients */}
-            {colorScheme === 'gold' && (
+            {(colorScheme === 'gold' || colorScheme === 'indigo') && (
               <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#d97706" />
-                <stop offset="50%" stopColor="#f59e0b" />
-                <stop offset="100%" stopColor="#fef08a" />
+                <stop offset="0%" stopColor="#4F46E5" />
+                <stop offset="50%" stopColor="#6366F1" />
+                <stop offset="100%" stopColor="#0EA5E9" />
               </linearGradient>
             )}
             {colorScheme === 'emerald' && (
               <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#059669" />
-                <stop offset="50%" stopColor="#10b981" />
-                <stop offset="100%" stopColor="#6ee7b7" />
+                <stop offset="0%" stopColor="#15803D" />
+                <stop offset="50%" stopColor="#16A34A" />
+                <stop offset="100%" stopColor="#4ADE80" />
               </linearGradient>
             )}
             {colorScheme === 'cyan' && (
               <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#0284c7" />
-                <stop offset="50%" stopColor="#38bdf8" />
-                <stop offset="100%" stopColor="#bae6fd" />
+                <stop offset="0%" stopColor="#0369A1" />
+                <stop offset="50%" stopColor="#0EA5E9" />
+                <stop offset="100%" stopColor="#7DD3FC" />
               </linearGradient>
             )}
           </defs>
@@ -77,24 +72,13 @@ export const Academic3DGauge: React.FC<Academic3DGaugeProps> = ({
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="#132238"
+            stroke="#F1F5F9"
             strokeWidth={strokeWidth}
             strokeDasharray={`${arcLength} ${circumference}`}
             strokeLinecap="round"
           />
 
-          {/* Inner Depth Rim */}
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius - strokeWidth / 2}
-            fill="none"
-            stroke="#070e1a"
-            strokeWidth={1}
-            strokeDasharray={`${arcLength} ${circumference}`}
-          />
-
-          {/* Foreground Active Arc with 3D shadow and rounded cap */}
+          {/* Foreground Active Arc */}
           <circle
             cx={size / 2}
             cy={size / 2}
@@ -105,19 +89,18 @@ export const Academic3DGauge: React.FC<Academic3DGaugeProps> = ({
             strokeDasharray={`${arcLength} ${circumference}`}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
-            filter="url(#gaugeShadow)"
             className="transition-all duration-700 ease-out"
           />
         </svg>
 
-        {/* Center Readout in Normal Orientation */}
+        {/* Center Readout */}
         <div className="absolute inset-0 flex flex-col items-center justify-center -mt-2">
-          <span className="text-3xl font-extrabold text-white font-mono tabular-nums tracking-tight">
+          <span className="text-3xl font-extrabold text-slate-900 font-mono tabular-nums tracking-tight">
             {value.toFixed(1)}
-            <span className="text-sm font-sans font-normal text-slate-400 ml-0.5">{unit}</span>
+            <span className="text-sm font-sans font-normal text-slate-500 ml-0.5">{unit}</span>
           </span>
           {gradeTier && (
-            <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full mt-1">
+            <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full mt-1">
               Tier {gradeTier}
             </span>
           )}
@@ -125,8 +108,8 @@ export const Academic3DGauge: React.FC<Academic3DGaugeProps> = ({
       </div>
 
       <div className="text-center -mt-2">
-        <h4 className="text-xs font-bold text-slate-200 tracking-wide">{label}</h4>
-        {sublabel && <p className="text-[11px] text-slate-400 mt-0.5">{sublabel}</p>}
+        <h4 className="text-xs font-bold text-slate-800 tracking-wide">{label}</h4>
+        {sublabel && <p className="text-[11px] text-slate-500 mt-0.5">{sublabel}</p>}
       </div>
     </div>
   );

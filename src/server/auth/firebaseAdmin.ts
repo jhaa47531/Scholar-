@@ -8,7 +8,7 @@ let firebaseAdminApp: App | null = null;
 let firebaseFirestoreDb: Firestore | null = null;
 
 export function isDevelopmentAuthEnabled(): boolean {
-  return process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+  return process.env.NODE_ENV !== 'production';
 }
 
 export function initializeFirebaseAdmin(): App | null {

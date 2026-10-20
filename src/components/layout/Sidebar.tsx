@@ -4,7 +4,6 @@ import {
   Users,
   GraduationCap,
   BookOpen,
-  FolderTree,
   UserCheck,
   Settings,
   FileSpreadsheet,
@@ -22,6 +21,7 @@ import {
   Shield,
   Layers,
   X,
+  CreditCard,
 } from 'lucide-react';
 import { UserRole } from '../../types/domain.ts';
 
@@ -71,6 +71,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           { id: 'subjects', label: 'Subjects Master', icon: BookOpen },
           { id: 'assignments', label: 'Teacher Assignments', icon: UserCheck },
           { id: 'configs', label: 'Assessment Configuration', icon: Settings },
+          { id: 'fees', label: 'Fee Management', icon: CreditCard },
           { id: 'reports', label: 'Performance Reports', icon: FileSpreadsheet },
           { id: 'audit', label: 'Audit Logs', icon: History },
           { id: 'migration', label: 'Data Export & Migration', icon: Database },
@@ -102,19 +103,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems = getNavItems();
 
   const sidebarContent = (
-    <div className="flex flex-col justify-between h-full bg-[#060d1a] border-r border-[#162740]">
+    <div className="flex flex-col justify-between h-full bg-white border-r border-slate-200">
       {/* Brand Header */}
-      <div className="flex items-center justify-between h-16 px-4 border-b border-[#162740] shrink-0">
+      <div className="flex items-center justify-between h-16 px-4 border-b border-slate-200 shrink-0">
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-600 to-amber-400 text-slate-950 font-bold shrink-0 shadow-sm shadow-amber-500/20">
+          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-500 text-white font-bold shrink-0 shadow-xs">
             <GraduationCap className="w-5 h-5" />
           </div>
           {!isCollapsed && (
             <div className="truncate">
-              <span className="font-bold text-sm tracking-tight text-white block">
+              <span className="font-bold text-sm tracking-tight text-slate-900 block">
                 ScholarSense
               </span>
-              <span className="text-[10px] text-amber-400/90 font-mono tracking-wider block font-semibold">
+              <span className="text-[10px] text-indigo-600 font-mono tracking-wider block font-semibold">
                 SPIS PLATFORM
               </span>
             </div>
@@ -125,7 +126,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           onClick={onToggleCollapse}
           title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-850 transition-colors"
+          className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
         >
           {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
         </button>
@@ -134,7 +135,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {onCloseMobile && (
           <button
             onClick={onCloseMobile}
-            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-850"
+            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
           >
             <X className="w-5 h-5" />
           </button>
@@ -143,10 +144,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Role Pill Banner */}
       {!isCollapsed && (
-        <div className="px-4 py-2 bg-[#091526] border-b border-[#162740] flex items-center justify-between text-xs">
-          <div className="flex items-center gap-1.5 text-slate-400">
-            <Shield className="w-3.5 h-3.5 text-amber-400" />
-            <span className="font-semibold text-slate-200">
+        <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-1.5 text-slate-600">
+            <Shield className="w-3.5 h-3.5 text-indigo-600" />
+            <span className="font-semibold text-slate-800">
               {currentRole === UserRole.ADMIN
                 ? 'Institutional Admin'
                 : currentRole === UserRole.TEACHER
@@ -154,7 +155,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 : 'Student Portal'}
             </span>
           </div>
-          <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 border border-slate-700">
+          <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-white text-indigo-700 border border-slate-200 font-semibold">
             {currentRole}
           </span>
         </div>
@@ -175,13 +176,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               title={isCollapsed ? item.label : undefined}
               className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
                 isActive
-                  ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900 border border-transparent'
+                  ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent'
               } ${isCollapsed ? 'justify-center px-0' : ''}`}
             >
               <Icon
                 className={`w-4 h-4 shrink-0 ${
-                  isActive ? 'text-amber-400' : 'text-slate-400 group-hover:text-slate-200'
+                  isActive ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'
                 }`}
               />
               {!isCollapsed && (
@@ -190,7 +191,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </span>
               )}
               {!isCollapsed && item.badge && (
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-amber-300">
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700">
                   {item.badge}
                 </span>
               )}
@@ -200,30 +201,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </nav>
 
       {/* User Footer & Switch Role */}
-      <div className="p-3 border-t border-[#162740] bg-[#091526]/80 shrink-0">
+      <div className="p-3 border-t border-slate-200 bg-slate-50/80 shrink-0">
         {!isCollapsed ? (
           <div className="space-y-2">
-            <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-slate-900 border border-slate-800">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-600 to-amber-400 flex items-center justify-center text-xs font-bold text-slate-950 shrink-0 shadow-sm">
+            <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-white border border-slate-200">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-sky-500 flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-xs">
                 {userDisplayName ? userDisplayName.charAt(0) : 'U'}
               </div>
               <div className="overflow-hidden flex-1">
-                <p className="text-xs font-semibold text-white truncate">{userDisplayName || 'User'}</p>
-                <p className="text-[10px] text-slate-400 font-mono truncate">{userEmail || ''}</p>
+                <p className="text-xs font-semibold text-slate-800 truncate">{userDisplayName || 'User'}</p>
+                <p className="text-[10px] text-slate-500 font-mono truncate">{userEmail || ''}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
               <button
                 onClick={onSwitchUser}
-                className="flex-1 py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-200 text-[11px] font-semibold border border-slate-700 transition-colors text-center cursor-pointer"
+                className="flex-1 py-1.5 px-2 rounded-lg bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-semibold border border-slate-200 transition-colors text-center cursor-pointer"
               >
                 Switch Role
               </button>
               <button
                 onClick={onLogout}
                 title="Sign out"
-                className="p-1.5 rounded-lg bg-slate-850 hover:bg-rose-500/15 text-slate-400 hover:text-rose-400 border border-slate-750 transition-colors cursor-pointer"
+                className="p-1.5 rounded-lg bg-white hover:bg-rose-50 text-slate-500 hover:text-rose-600 border border-slate-200 transition-colors cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -234,14 +235,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={onSwitchUser}
               title="Switch Account"
-              className="w-10 h-10 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 flex items-center justify-center transition-colors border border-slate-800 cursor-pointer"
+              className="w-10 h-10 rounded-xl bg-white hover:bg-slate-100 text-indigo-600 flex items-center justify-center transition-colors border border-slate-200 cursor-pointer shadow-xs"
             >
               <Users className="w-4 h-4" />
             </button>
             <button
               onClick={onLogout}
               title="Sign out"
-              className="w-10 h-10 rounded-xl bg-slate-900 hover:bg-rose-500/15 text-slate-400 hover:text-rose-400 flex items-center justify-center transition-colors border border-slate-800 cursor-pointer"
+              className="w-10 h-10 rounded-xl bg-white hover:bg-rose-50 text-slate-500 hover:text-rose-600 flex items-center justify-center transition-colors border border-slate-200 cursor-pointer shadow-xs"
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -266,7 +267,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {isMobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
           <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs"
             onClick={onCloseMobile}
           />
           <div className="relative w-72 max-w-[80vw] h-full shadow-2xl">

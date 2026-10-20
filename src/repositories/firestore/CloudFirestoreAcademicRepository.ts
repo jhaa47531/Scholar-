@@ -9,6 +9,10 @@ import {
   TeacherProfile,
   UserAccount,
   UserRole,
+  AcademicCycle,
+  FeePaymentStatus,
+  CourseFeeStructure,
+  StudentFeeRecord,
 } from '../../types/domain.ts';
 
 /**
@@ -28,6 +32,59 @@ export class CloudFirestoreAcademicRepository implements IAcademicRepository {
    * Safely initializes master catalog collections in Firestore if they are empty
    */
   async ensureInitialized(): Promise<void> {
+    const adminDoc = await this.db.collection('users').doc('usr_admin').get();
+    const instAdminSnap = await this.db.collection('users').where('email', '==', 'admin@institution.edu').limit(1).get();
+    if (!adminDoc.exists || instAdminSnap.empty) {
+      console.log('[Firestore Init] Seeding default institutional users, teachers, and students...');
+      const batch = this.db.batch();
+
+      // Default Users
+      const defaultUsers: UserAccount[] = [
+        { id: 'usr_admin', email: 'admin@institution.edu', displayName: 'Prof. Eleanor Vance (Dean & Admin)', role: UserRole.ADMIN, isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: 'usr_admin_jha', email: 'jhaa47531@gmail.com', displayName: 'System Administrator (Aditya Jha)', role: UserRole.ADMIN, isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: 'usr_teacher_sharma', email: 'sharma@faculty.edu', displayName: 'Dr. Rajesh Sharma (HOD Computing)', role: UserRole.TEACHER, isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: 'usr_teacher_gupta', email: 'gupta@faculty.edu', displayName: 'Prof. Anita Gupta (Asst. Professor)', role: UserRole.TEACHER, isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: 'usr_student_aarav', email: 'aarav.patel@student.edu', displayName: 'Aarav Patel (BCA 1st Year)', role: UserRole.STUDENT, isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: 'usr_student_diya', email: 'diya.sharma@student.edu', displayName: 'Diya Sharma (BCA 1st Year)', role: UserRole.STUDENT, isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+        { id: 'usr_student_kabir', email: 'kabir.verma@student.edu', displayName: 'Kabir Verma (BCA 1st Year)', role: UserRole.STUDENT, isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      ];
+      for (const u of defaultUsers) {
+        batch.set(this.db.collection('users').doc(u.id), u, { merge: true });
+      }
+
+      // Teachers
+      const defaultTeachers: TeacherProfile[] = [
+        { id: 'tch_sharma', userId: 'usr_teacher_sharma', employeeCode: 'FAC-CS-001', name: 'Dr. Rajesh Sharma', email: 'sharma@faculty.edu', department: 'Computer Applications', designation: 'Professor & Head', isActive: true, createdAt: new Date().toISOString() },
+        { id: 'tch_gupta', userId: 'usr_teacher_gupta', employeeCode: 'FAC-CS-002', name: 'Prof. Anita Gupta', email: 'gupta@faculty.edu', department: 'Computer Applications', designation: 'Assistant Professor', isActive: true, createdAt: new Date().toISOString() },
+      ];
+      for (const t of defaultTeachers) {
+        batch.set(this.db.collection('teachers').doc(t.id), t);
+      }
+
+      // Students
+      const defaultStudents: StudentProfile[] = [
+        { id: 'stu_aarav', userId: 'usr_student_aarav', enrollmentNo: 'EN2025BCA001', rollNo: 'BCA-01', name: 'Aarav Patel', email: 'aarav.patel@student.edu', courseId: 'crs_bca', currentSemester: 1, admissionSessionId: 'sess_2025_26', isActive: true, createdAt: new Date().toISOString() },
+        { id: 'stu_diya', userId: 'usr_student_diya', enrollmentNo: 'EN2025BCA002', rollNo: 'BCA-02', name: 'Diya Sharma', email: 'diya.sharma@student.edu', courseId: 'crs_bca', currentSemester: 1, admissionSessionId: 'sess_2025_26', isActive: true, createdAt: new Date().toISOString() },
+        { id: 'stu_kabir', userId: 'usr_student_kabir', enrollmentNo: 'EN2025BCA003', rollNo: 'BCA-03', name: 'Kabir Verma', email: 'kabir.verma@student.edu', courseId: 'crs_bca', currentSemester: 1, admissionSessionId: 'sess_2025_26', isActive: true, createdAt: new Date().toISOString() },
+      ];
+      for (const st of defaultStudents) {
+        batch.set(this.db.collection('students').doc(st.id), st);
+      }
+
+      // Teacher Assignments
+      const defaultAssignments: TeacherAssignment[] = [
+        { id: 'asg_sharma_bca101', teacherId: 'tch_sharma', subjectId: 'sub_bca101', sessionId: 'sess_2025_26', semester: 1, isActive: true, assignedAt: new Date().toISOString() },
+        { id: 'asg_sharma_bca102', teacherId: 'tch_sharma', subjectId: 'sub_bca102', sessionId: 'sess_2025_26', semester: 1, isActive: true, assignedAt: new Date().toISOString() },
+        { id: 'asg_gupta_bca103', teacherId: 'tch_gupta', subjectId: 'sub_bca103', sessionId: 'sess_2025_26', semester: 1, isActive: true, assignedAt: new Date().toISOString() },
+        { id: 'asg_gupta_bca104a', teacherId: 'tch_gupta', subjectId: 'sub_bca104_el1', sessionId: 'sess_2025_26', semester: 1, isActive: true, assignedAt: new Date().toISOString() },
+      ];
+      for (const a of defaultAssignments) {
+        batch.set(this.db.collection('teacherAssignments').doc(a.id), a);
+      }
+
+      await batch.commit();
+    }
+
     const courseSnapshot = await this.db.collection('courseStructures').limit(1).get();
     if (courseSnapshot.empty) {
       console.log('[Firestore Init] Seeding initial course structures, sessions, and catalog...');
@@ -56,7 +113,7 @@ export class CloudFirestoreAcademicRepository implements IAcademicRepository {
         batch.set(this.db.collection('academicSessions').doc(s.id), s);
       }
 
-      // 3. BCA Subjects
+      // 3. BCA & BTech Subjects
       const defaultSubjects: SubjectMaster[] = [
         { id: 'sub_bca101', subjectCode: 'BCA-101', name: 'Computer Fundamentals & Problem Solving', courseId: 'crs_bca', semester: 1, isRequired: true, credits: 4, isActive: true, createdAt: new Date().toISOString() },
         { id: 'sub_bca102', subjectCode: 'BCA-102', name: 'Programming in C Language', courseId: 'crs_bca', semester: 1, isRequired: true, credits: 4, isActive: true, createdAt: new Date().toISOString() },
@@ -70,47 +127,38 @@ export class CloudFirestoreAcademicRepository implements IAcademicRepository {
         batch.set(this.db.collection('subjects').doc(sub.id), sub);
       }
 
-      // 4. Default Users
-      const defaultUsers: UserAccount[] = [
-        { id: 'usr_admin', email: 'admin@institution.edu', displayName: 'Prof. Eleanor Vance (Dean & Admin)', role: UserRole.ADMIN, isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-        { id: 'usr_teacher_sharma', email: 'sharma@faculty.edu', displayName: 'Dr. Rajesh Sharma (HOD Computing)', role: UserRole.TEACHER, isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-        { id: 'usr_teacher_gupta', email: 'gupta@faculty.edu', displayName: 'Prof. Anita Gupta (Asst. Professor)', role: UserRole.TEACHER, isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-        { id: 'usr_student_aarav', email: 'aarav.patel@student.edu', displayName: 'Aarav Patel (BCA 1st Year)', role: UserRole.STUDENT, isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-        { id: 'usr_student_diya', email: 'diya.sharma@student.edu', displayName: 'Diya Sharma (BCA 1st Year)', role: UserRole.STUDENT, isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
-        { id: 'usr_student_kabir', email: 'kabir.verma@student.edu', displayName: 'Kabir Verma (BCA 1st Year)', role: UserRole.STUDENT, isActive: true, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+      await batch.commit();
+    }
+
+    const feeSnapshot = await this.db.collection('feeStructures').limit(1).get();
+    if (feeSnapshot.empty) {
+      console.log('[Firestore Init] Seeding fee structures and student fee records...');
+      const batch = this.db.batch();
+
+      const defaultFees: CourseFeeStructure[] = [
+        { id: 'fee_bca_s1', courseId: 'crs_bca', semester: 1, academicCycle: AcademicCycle.ODD_DECEMBER, tuitionFee: 25000, examinationFee: 3000, laboratoryFee: 3000, libraryFee: 1000, totalFee: 32000, advanceCollectionSemester: 2, ruleNotes: 'Fees collected 1 semester in advance; Dec cycle' },
+        { id: 'fee_bca_s2', courseId: 'crs_bca', semester: 2, academicCycle: AcademicCycle.EVEN_JUNE, tuitionFee: 25000, examinationFee: 3000, laboratoryFee: 3000, libraryFee: 1000, totalFee: 32000, advanceCollectionSemester: 3, ruleNotes: 'Fees collected 1 semester in advance; June cycle' },
+        { id: 'fee_bba_s1', courseId: 'crs_bba', semester: 1, academicCycle: AcademicCycle.ODD_DECEMBER, tuitionFee: 24000, examinationFee: 3000, laboratoryFee: 2000, libraryFee: 1000, totalFee: 30000, advanceCollectionSemester: 2, ruleNotes: 'Fees collected 1 semester in advance; Dec cycle' },
+        { id: 'fee_bcom_s1', courseId: 'crs_bcom', semester: 1, academicCycle: AcademicCycle.ODD_DECEMBER, tuitionFee: 19000, examinationFee: 2500, laboratoryFee: 1500, libraryFee: 1000, totalFee: 24000, advanceCollectionSemester: 2, ruleNotes: 'Fees collected 1 semester in advance; Dec cycle' },
+        { id: 'fee_ba_s1', courseId: 'crs_ba', semester: 1, academicCycle: AcademicCycle.ODD_DECEMBER, tuitionFee: 16000, examinationFee: 2000, laboratoryFee: 1000, libraryFee: 1000, totalFee: 20000, advanceCollectionSemester: 2, ruleNotes: 'Fees collected 1 semester in advance; Dec cycle' },
+        { id: 'fee_btech_s1', courseId: 'crs_btech', semester: 1, academicCycle: AcademicCycle.ODD_DECEMBER, tuitionFee: 42000, examinationFee: 4000, laboratoryFee: 6000, libraryFee: 3000, totalFee: 55000, advanceCollectionSemester: 2, ruleNotes: 'Fees collected 1 semester in advance; Dec cycle' },
+        { id: 'fee_mca_s1', courseId: 'crs_mca', semester: 1, academicCycle: AcademicCycle.ODD_DECEMBER, tuitionFee: 34000, examinationFee: 3500, laboratoryFee: 3000, libraryFee: 1500, totalFee: 42000, advanceCollectionSemester: 2, ruleNotes: 'Fees collected 1 semester in advance; Dec cycle' },
+        { id: 'fee_mba_s1', courseId: 'crs_mba', semester: 1, academicCycle: AcademicCycle.ODD_DECEMBER, tuitionFee: 38000, examinationFee: 4000, laboratoryFee: 4000, libraryFee: 2000, totalFee: 48000, advanceCollectionSemester: 2, ruleNotes: 'Fees collected 1 semester in advance; Dec cycle' },
       ];
-      for (const u of defaultUsers) {
-        batch.set(this.db.collection('users').doc(u.id), u);
+      for (const f of defaultFees) {
+        batch.set(this.db.collection('feeStructures').doc(f.id), f);
       }
 
-      // 5. Teachers
-      const defaultTeachers: TeacherProfile[] = [
-        { id: 'tch_sharma', userId: 'usr_teacher_sharma', employeeCode: 'FAC-CS-001', name: 'Dr. Rajesh Sharma', email: 'sharma@faculty.edu', department: 'Computer Applications', designation: 'Professor & Head', isActive: true, createdAt: new Date().toISOString() },
-        { id: 'tch_gupta', userId: 'usr_teacher_gupta', employeeCode: 'FAC-CS-002', name: 'Prof. Anita Gupta', email: 'gupta@faculty.edu', department: 'Computer Applications', designation: 'Assistant Professor', isActive: true, createdAt: new Date().toISOString() },
+      const defaultStudentFees: StudentFeeRecord[] = [
+        { id: 'stf_aarav_s1', studentId: 'stu_aarav', courseId: 'crs_bca', currentSemester: 1, assessedSemester: 1, academicCycle: AcademicCycle.ODD_DECEMBER, totalFee: 32000, paidAmount: 32000, balance: 0, status: FeePaymentStatus.PAID, dueDate: '2025-08-15', paidAt: '2025-08-10T10:30:00Z', receiptNumber: 'REC-2025-BCA-0012', isAdvancePayment: false },
+        { id: 'stf_aarav_s2_adv', studentId: 'stu_aarav', courseId: 'crs_bca', currentSemester: 1, assessedSemester: 2, academicCycle: AcademicCycle.EVEN_JUNE, totalFee: 32000, paidAmount: 32000, balance: 0, status: FeePaymentStatus.PAID, dueDate: '2025-12-10', paidAt: '2025-12-05T14:15:00Z', receiptNumber: 'REC-2025-BCA-0044', isAdvancePayment: true },
+        { id: 'stf_diya_s1', studentId: 'stu_diya', courseId: 'crs_bca', currentSemester: 1, assessedSemester: 1, academicCycle: AcademicCycle.ODD_DECEMBER, totalFee: 32000, paidAmount: 32000, balance: 0, status: FeePaymentStatus.PAID, dueDate: '2025-08-15', paidAt: '2025-08-12T11:00:00Z', receiptNumber: 'REC-2025-BCA-0015', isAdvancePayment: false },
+        { id: 'stf_diya_s2_adv', studentId: 'stu_diya', courseId: 'crs_bca', currentSemester: 1, assessedSemester: 2, academicCycle: AcademicCycle.EVEN_JUNE, totalFee: 32000, paidAmount: 16000, balance: 16000, status: FeePaymentStatus.PARTIAL, dueDate: '2025-12-10', paidAt: '2025-12-01T09:20:00Z', receiptNumber: 'REC-2025-BCA-0048', isAdvancePayment: true },
+        { id: 'stf_kabir_s1', studentId: 'stu_kabir', courseId: 'crs_bca', currentSemester: 1, assessedSemester: 1, academicCycle: AcademicCycle.ODD_DECEMBER, totalFee: 32000, paidAmount: 32000, balance: 0, status: FeePaymentStatus.PAID, dueDate: '2025-08-15', paidAt: '2025-08-14T16:45:00Z', receiptNumber: 'REC-2025-BCA-0021', isAdvancePayment: false },
+        { id: 'stf_kabir_s2_adv', studentId: 'stu_kabir', courseId: 'crs_bca', currentSemester: 1, assessedSemester: 2, academicCycle: AcademicCycle.EVEN_JUNE, totalFee: 32000, paidAmount: 0, balance: 32000, status: FeePaymentStatus.PENDING, dueDate: '2025-12-10', isAdvancePayment: true },
       ];
-      for (const t of defaultTeachers) {
-        batch.set(this.db.collection('teachers').doc(t.id), t);
-      }
-
-      // 6. Students
-      const defaultStudents: StudentProfile[] = [
-        { id: 'stu_aarav', userId: 'usr_student_aarav', enrollmentNo: 'EN2025BCA001', rollNo: 'BCA-01', name: 'Aarav Patel', email: 'aarav.patel@student.edu', courseId: 'crs_bca', currentSemester: 1, admissionSessionId: 'sess_2025_26', isActive: true, createdAt: new Date().toISOString() },
-        { id: 'stu_diya', userId: 'usr_student_diya', enrollmentNo: 'EN2025BCA002', rollNo: 'BCA-02', name: 'Diya Sharma', email: 'diya.sharma@student.edu', courseId: 'crs_bca', currentSemester: 1, admissionSessionId: 'sess_2025_26', isActive: true, createdAt: new Date().toISOString() },
-        { id: 'stu_kabir', userId: 'usr_student_kabir', enrollmentNo: 'EN2025BCA003', rollNo: 'BCA-03', name: 'Kabir Verma', email: 'kabir.verma@student.edu', courseId: 'crs_bca', currentSemester: 1, admissionSessionId: 'sess_2025_26', isActive: true, createdAt: new Date().toISOString() },
-      ];
-      for (const st of defaultStudents) {
-        batch.set(this.db.collection('students').doc(st.id), st);
-      }
-
-      // 7. Teacher Assignments
-      const defaultAssignments: TeacherAssignment[] = [
-        { id: 'asg_sharma_bca101', teacherId: 'tch_sharma', subjectId: 'sub_bca101', sessionId: 'sess_2025_26', semester: 1, isActive: true, assignedAt: new Date().toISOString() },
-        { id: 'asg_sharma_bca102', teacherId: 'tch_sharma', subjectId: 'sub_bca102', sessionId: 'sess_2025_26', semester: 1, isActive: true, assignedAt: new Date().toISOString() },
-        { id: 'asg_gupta_bca103', teacherId: 'tch_gupta', subjectId: 'sub_bca103', sessionId: 'sess_2025_26', semester: 1, isActive: true, assignedAt: new Date().toISOString() },
-        { id: 'asg_gupta_bca104a', teacherId: 'tch_gupta', subjectId: 'sub_bca104_el1', sessionId: 'sess_2025_26', semester: 1, isActive: true, assignedAt: new Date().toISOString() },
-      ];
-      for (const a of defaultAssignments) {
-        batch.set(this.db.collection('teacherAssignments').doc(a.id), a);
+      for (const sf of defaultStudentFees) {
+        batch.set(this.db.collection('studentFeeRecords').doc(sf.id), sf);
       }
 
       await batch.commit();
@@ -247,5 +295,67 @@ export class CloudFirestoreAcademicRepository implements IAcademicRepository {
   async createUser(user: UserAccount): Promise<UserAccount> {
     await this.db.collection('users').doc(user.id).set(user);
     return user;
+  }
+
+  async getFeeStructures(courseId?: string): Promise<CourseFeeStructure[]> {
+    let query: FirebaseFirestore.Query = this.db.collection('feeStructures');
+    if (courseId) query = query.where('courseId', '==', courseId);
+    const snap = await query.get();
+    return snap.docs.map((d) => d.data() as CourseFeeStructure);
+  }
+
+  async getStudentFeeRecords(studentId?: string): Promise<StudentFeeRecord[]> {
+    let query: FirebaseFirestore.Query = this.db.collection('studentFeeRecords');
+    if (studentId) query = query.where('studentId', '==', studentId);
+    const snap = await query.get();
+    return snap.docs.map((d) => d.data() as StudentFeeRecord);
+  }
+
+  async recordFeePayment(payment: {
+    studentId: string;
+    amount: number;
+    assessedSemester?: number;
+    receiptNumber?: string;
+  }): Promise<StudentFeeRecord> {
+    let query: FirebaseFirestore.Query = this.db.collection('studentFeeRecords').where('studentId', '==', payment.studentId);
+    if (payment.assessedSemester !== undefined) {
+      query = query.where('assessedSemester', '==', payment.assessedSemester);
+    }
+    const snap = await query.get();
+    let targetDoc = snap.docs.find((d) => (d.data() as StudentFeeRecord).status !== FeePaymentStatus.PAID) || snap.docs[0];
+
+    let target: StudentFeeRecord;
+    let docRef: FirebaseFirestore.DocumentReference;
+
+    if (!targetDoc) {
+      const id = `stf_${payment.studentId}_s${payment.assessedSemester || 2}`;
+      docRef = this.db.collection('studentFeeRecords').doc(id);
+      target = {
+        id,
+        studentId: payment.studentId,
+        courseId: 'crs_bca',
+        currentSemester: 1,
+        assessedSemester: payment.assessedSemester || 2,
+        academicCycle: (payment.assessedSemester || 2) % 2 === 0 ? AcademicCycle.EVEN_JUNE : AcademicCycle.ODD_DECEMBER,
+        totalFee: 32000,
+        paidAmount: 0,
+        balance: 32000,
+        status: FeePaymentStatus.PENDING,
+        dueDate: '2026-01-15',
+        isAdvancePayment: true,
+      };
+    } else {
+      docRef = targetDoc.ref;
+      target = targetDoc.data() as StudentFeeRecord;
+    }
+
+    target.paidAmount += payment.amount;
+    target.balance = Math.max(0, target.totalFee - target.paidAmount);
+    target.status = target.balance === 0 ? FeePaymentStatus.PAID : target.paidAmount > 0 ? FeePaymentStatus.PARTIAL : FeePaymentStatus.PENDING;
+    target.paidAt = new Date().toISOString();
+    target.receiptNumber = payment.receiptNumber || `REC-${Date.now().toString().slice(-6)}`;
+
+    await docRef.set(target);
+    return target;
   }
 }

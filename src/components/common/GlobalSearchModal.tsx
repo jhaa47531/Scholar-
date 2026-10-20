@@ -54,44 +54,44 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto p-4 sm:p-6 md:p-20 flex justify-center items-start">
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
+      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs transition-opacity" onClick={onClose} />
 
-      <div className="relative w-full max-w-2xl surface-navy-elevated rounded-2xl border border-slate-800 shadow-2xl overflow-hidden mt-8">
+      <div className="relative w-full max-w-2xl bg-white rounded-2xl border border-slate-200 shadow-2xl overflow-hidden mt-8">
         {/* Search Input Bar */}
-        <div className="p-4 border-b border-slate-800 flex items-center gap-3">
-          <Search className="w-5 h-5 text-amber-400 shrink-0" />
+        <div className="p-4 border-b border-slate-100 flex items-center gap-3">
+          <Search className="w-5 h-5 text-indigo-600 shrink-0" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search students, faculty, subjects, or courses..."
             autoFocus
-            className="w-full bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none"
+            className="w-full bg-transparent text-sm text-slate-800 placeholder-slate-400 focus:outline-none"
           />
           {query && (
             <button
               onClick={() => setQuery('')}
-              className="p-1 rounded text-slate-500 hover:text-slate-300"
+              className="p-1 rounded text-slate-400 hover:text-slate-600"
             >
               <X className="w-4 h-4" />
             </button>
           )}
           <button
             onClick={onClose}
-            className="text-xs font-mono text-slate-400 bg-slate-800/80 px-2 py-1 rounded border border-slate-700"
+            className="text-xs font-mono text-slate-500 bg-slate-100 px-2 py-1 rounded border border-slate-200"
           >
             ESC
           </button>
         </div>
 
         {/* Results List */}
-        <div className="p-2 max-h-96 overflow-y-auto divide-y divide-slate-800/40">
+        <div className="p-2 max-h-96 overflow-y-auto divide-y divide-slate-100">
           {query && results.length === 0 ? (
-            <div className="p-8 text-center text-xs text-slate-500">
+            <div className="p-8 text-center text-xs text-slate-400">
               No academic records matching &ldquo;{query}&rdquo;
             </div>
           ) : !query ? (
-            <div className="p-6 text-center text-xs text-slate-500">
+            <div className="p-6 text-center text-xs text-slate-400">
               Type to instantly search registered students, faculty members, curriculum subjects, or degree programs.
             </div>
           ) : (
@@ -112,20 +112,20 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                     onSelectResult(res.type, res.id);
                     onClose();
                   }}
-                  className="w-full p-3 rounded-xl hover:bg-slate-800/60 transition-colors flex items-center justify-between group text-left cursor-pointer"
+                  className="w-full p-3 rounded-xl hover:bg-slate-50 transition-colors flex items-center justify-between group text-left cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-slate-800 text-amber-400">
+                    <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
                       <Icon className="w-4 h-4" />
                     </div>
                     <div>
-                      <div className="text-xs font-semibold text-white group-hover:text-amber-300 transition-colors">
+                      <div className="text-xs font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors">
                         {res.title}
                       </div>
-                      <div className="text-[11px] text-slate-400">{res.subtitle}</div>
+                      <div className="text-[11px] text-slate-500">{res.subtitle}</div>
                     </div>
                   </div>
-                  <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-amber-400 group-hover:translate-x-0.5 transition-all" />
+                  <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all" />
                 </button>
               );
             })

@@ -6,6 +6,8 @@ import {
   TeacherAssignment,
   TeacherProfile,
   UserAccount,
+  CourseFeeStructure,
+  StudentFeeRecord,
 } from '../../types/domain.ts';
 
 export interface IAcademicRepository {
@@ -45,4 +47,15 @@ export interface IAcademicRepository {
   getUserByEmail(email: string): Promise<UserAccount | null>;
   getUserById(id: string): Promise<UserAccount | null>;
   createUser(user: UserAccount): Promise<UserAccount>;
+
+  // Fee Management & Advance Collection Rules
+  getFeeStructures(courseId?: string): Promise<CourseFeeStructure[]>;
+  getStudentFeeRecords(studentId?: string): Promise<StudentFeeRecord[]>;
+  recordFeePayment(payment: {
+    studentId: string;
+    amount: number;
+    assessedSemester?: number;
+    receiptNumber?: string;
+  }): Promise<StudentFeeRecord>;
 }
+

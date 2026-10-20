@@ -200,7 +200,7 @@ export interface SessionalOverallReport {
 
 export interface AuditLogEntry {
   id: string;
-  entityType: 'ASSESSMENT' | 'SESSIONAL_CONFIG' | 'ASSIGNMENT' | 'ENROLLMENT' | 'USER';
+  entityType: 'ASSESSMENT' | 'SESSIONAL_CONFIG' | 'ASSIGNMENT' | 'ENROLLMENT' | 'USER' | 'FEE_PAYMENT';
   entityId: string;
   action: 'CREATE' | 'UPDATE' | 'FINAL_SUBMIT' | 'CORRECTION' | 'DELETE';
   actorId: string;
@@ -210,3 +210,47 @@ export interface AuditLogEntry {
   newData?: Record<string, unknown> | null;
   timestamp: string;
 }
+
+export enum AcademicCycle {
+  ODD_DECEMBER = 'ODD_DECEMBER', // December: Odd Semester (1, 3, 5, 7)
+  EVEN_JUNE = 'EVEN_JUNE',       // June: Even Semester (2, 4, 6, 8)
+}
+
+export enum FeePaymentStatus {
+  PAID = 'PAID',
+  PENDING = 'PENDING',
+  PARTIAL = 'PARTIAL',
+  OVERDUE = 'OVERDUE',
+}
+
+export interface CourseFeeStructure {
+  id: string;
+  courseId: string;
+  semester: number;
+  academicCycle: AcademicCycle;
+  tuitionFee: number;
+  examinationFee: number;
+  laboratoryFee: number;
+  libraryFee: number;
+  totalFee: number;
+  advanceCollectionSemester: number; // Rules: Fees collected one semester in advance
+  ruleNotes: string;
+}
+
+export interface StudentFeeRecord {
+  id: string;
+  studentId: string;
+  courseId: string;
+  currentSemester: number;
+  assessedSemester: number; // The semester being paid for
+  academicCycle: AcademicCycle;
+  totalFee: number;
+  paidAmount: number;
+  balance: number;
+  status: FeePaymentStatus;
+  dueDate: string;
+  paidAt?: string | null;
+  receiptNumber?: string | null;
+  isAdvancePayment: boolean; // Indicates one semester in advance collection
+}
+

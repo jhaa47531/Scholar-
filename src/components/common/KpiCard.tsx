@@ -29,22 +29,21 @@ export const KpiCard: React.FC<KpiCardProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`relative p-5 rounded-xl surface-navy card-3d border border-[#192b45] transition-all duration-200 group ${
-        onClick ? 'cursor-pointer hover:border-amber-500/40' : ''
+      className={`relative p-5 rounded-xl bg-white border border-slate-200/90 shadow-xs card-hover transition-all duration-200 ${
+        onClick ? 'cursor-pointer' : ''
       } ${className}`}
     >
-      {/* Subtle Top Specular Lighting Highlight */}
-      <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-amber-400/20 to-transparent pointer-events-none" />
-
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
-          <p className="text-[11px] font-semibold text-slate-400 tracking-wider uppercase font-mono">{title}</p>
+          <p className="text-[11px] font-semibold text-slate-500 tracking-wider uppercase font-mono">
+            {title}
+          </p>
           <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-2xl lg:text-3xl font-extrabold tracking-tight text-white font-mono tabular-nums">
+            <span className="text-2xl lg:text-3xl font-extrabold tracking-tight text-slate-900 font-mono tabular-nums">
               {value}
             </span>
             {badge && (
-              <span className="text-[10px] font-mono font-semibold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 rounded">
+              <span className="text-[10px] font-mono font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/80 px-2 py-0.5 rounded">
                 {badge}
               </span>
             )}
@@ -52,23 +51,23 @@ export const KpiCard: React.FC<KpiCardProps> = ({
         </div>
 
         {Icon && (
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/80 text-amber-400 shadow-sm group-hover:scale-105 group-hover:border-amber-500/30 transition-transform">
+          <div className="p-2.5 rounded-xl bg-indigo-50/80 border border-indigo-100 text-indigo-600 shadow-xs">
             <Icon className="w-4 h-4" />
           </div>
         )}
       </div>
 
       {(subtitle || trend) && (
-        <div className="mt-3.5 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+        <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
           {subtitle && <span className="truncate">{subtitle}</span>}
           {trend && (
             <span
               className={`font-mono tabular-nums font-semibold ${
                 trend.neutral
-                  ? 'text-slate-400'
+                  ? 'text-slate-500'
                   : trend.positive
-                  ? 'text-emerald-400'
-                  : 'text-rose-400'
+                  ? 'text-emerald-600'
+                  : 'text-rose-600'
               }`}
             >
               {trend.value}

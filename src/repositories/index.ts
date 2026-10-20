@@ -63,23 +63,65 @@ export function isLiveFirestoreActive(): boolean {
 export const activeAcademicRepo: IAcademicRepository = new Proxy({} as IAcademicRepository, {
   get(_, prop: keyof IAcademicRepository) {
     const target = liveFirestoreVerified && cloudAcademicRepo ? cloudAcademicRepo : inMemoryAcademicRepo;
-    const value = target[prop];
+    const value = (target as any)[prop];
     return typeof value === 'function' ? value.bind(target) : value;
+  },
+  set(_, prop, value) {
+    const target = liveFirestoreVerified && cloudAcademicRepo ? cloudAcademicRepo : inMemoryAcademicRepo;
+    (target as any)[prop] = value;
+    return true;
+  },
+  deleteProperty(_, prop) {
+    const target = liveFirestoreVerified && cloudAcademicRepo ? cloudAcademicRepo : inMemoryAcademicRepo;
+    delete (target as any)[prop];
+    return true;
+  },
+  has(_, prop) {
+    const target = liveFirestoreVerified && cloudAcademicRepo ? cloudAcademicRepo : inMemoryAcademicRepo;
+    return prop in target;
   },
 });
 
 export const activeAssessmentRepo: IAssessmentRepository = new Proxy({} as IAssessmentRepository, {
   get(_, prop: keyof IAssessmentRepository) {
     const target = liveFirestoreVerified && cloudAssessmentRepo ? cloudAssessmentRepo : inMemoryAssessmentRepo;
-    const value = target[prop];
+    const value = (target as any)[prop];
     return typeof value === 'function' ? value.bind(target) : value;
+  },
+  set(_, prop, value) {
+    const target = liveFirestoreVerified && cloudAssessmentRepo ? cloudAssessmentRepo : inMemoryAssessmentRepo;
+    (target as any)[prop] = value;
+    return true;
+  },
+  deleteProperty(_, prop) {
+    const target = liveFirestoreVerified && cloudAssessmentRepo ? cloudAssessmentRepo : inMemoryAssessmentRepo;
+    delete (target as any)[prop];
+    return true;
+  },
+  has(_, prop) {
+    const target = liveFirestoreVerified && cloudAssessmentRepo ? cloudAssessmentRepo : inMemoryAssessmentRepo;
+    return prop in target;
   },
 });
 
 export const activeAuditRepo: IAuditRepository = new Proxy({} as IAuditRepository, {
   get(_, prop: keyof IAuditRepository) {
     const target = liveFirestoreVerified && cloudAuditRepo ? cloudAuditRepo : inMemoryAuditRepo;
-    const value = target[prop];
+    const value = (target as any)[prop];
     return typeof value === 'function' ? value.bind(target) : value;
+  },
+  set(_, prop, value) {
+    const target = liveFirestoreVerified && cloudAuditRepo ? cloudAuditRepo : inMemoryAuditRepo;
+    (target as any)[prop] = value;
+    return true;
+  },
+  deleteProperty(_, prop) {
+    const target = liveFirestoreVerified && cloudAuditRepo ? cloudAuditRepo : inMemoryAuditRepo;
+    delete (target as any)[prop];
+    return true;
+  },
+  has(_, prop) {
+    const target = liveFirestoreVerified && cloudAuditRepo ? cloudAuditRepo : inMemoryAuditRepo;
+    return prop in target;
   },
 });

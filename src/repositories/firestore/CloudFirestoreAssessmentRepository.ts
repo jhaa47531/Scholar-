@@ -313,11 +313,16 @@ export class CloudFirestoreAssessmentRepository implements IAssessmentRepository
         timestamp,
       };
 
+      if (this.auditFailureHook) {
+        this.auditFailureHook();
+      }
       transaction.set(docRef, updated);
       transaction.create(auditRef, auditLog);
       return { assessment: updated, auditLog };
     });
   }
+
+  public auditFailureHook?: () => void;
 }
 
 function assertCorrectionContextMatches(current: AssessmentRecord, expected: AssessmentRecord): void {

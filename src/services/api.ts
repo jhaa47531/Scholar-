@@ -12,6 +12,8 @@ import {
   TeacherProfile,
   UserAccount,
   UserRole,
+  CourseFeeStructure,
+  StudentFeeRecord,
 } from '../types/domain.ts';
 
 let currentAuthToken: string | null = typeof window !== 'undefined'
@@ -163,22 +165,79 @@ export const api = {
     email: string,
     password: string
   ): Promise<{ success: boolean; token?: string; message?: string }> => {
+    let clientAuthError: any = null;
+    // 1. If Firebase Auth is initialized and configured with live keys, attempt client SDK
     try {
-      const { auth } = await import('../config/firebase.ts');
-      if (!auth) {
-        return {
-          success: false,
-          message: 'Firebase Authentication is not configured. Contact your administrator.',
-        };
+      const { auth, isFirebaseConfigured } = await import('../config/firebase.ts');
+      if (auth && isFirebaseConfigured()) {
+        const { signInWithEmailAndPassword: signIn } = await import('firebase/auth');
+        const credential = await signIn(auth, email.trim(), password);
+        const token = await credential.user.getIdToken();
+        setApiAuthToken(token);
+        return { success: true, token };
       }
+    } catch (error: any) {
+      clientAuthError = error;
+      console.warn('[Client Auth] Firebase Auth sign-in failed, checking institutional server fallback:', error?.code || error?.message);
+    }
 
-      const { signInWithEmailAndPassword: signIn } = await import('firebase/auth');
-      const credential = await signIn(auth, email.trim(), password);
-      const token = await credential.user.getIdToken();
-      setApiAuthToken(token);
-      return { success: true, token };
-    } catch (error) {
-      return { success: false, message: getSignInErrorMessage(error) };
+    // 2. Fallback to server institutional login endpoint (for verified institutional accounts)
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      const data = await safeParseJson<{ success: boolean; token?: string; message?: string }>(res, {
+        success: false,
+        message: 'Authentication failed',
+      });
+      if (data.success && data.token) {
+        setApiAuthToken(data.token);
+        return { success: true, token: data.token };
+      }
+      return {
+        success: false,
+        message: data.message || (clientAuthError ? getSignInErrorMessage(clientAuthError) : 'Invalid institutional email or password'),
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        message: err.message || (clientAuthError ? getSignInErrorMessage(clientAuthError) : 'Network connection failed'),
+      };
+    }
+  },
+
+  register: async (payload: {
+    email: string;
+    displayName: string;
+    role: string;
+    enrollmentNo?: string;
+    rollNo?: string;
+    courseId?: string;
+    currentSemester?: number;
+    admissionSessionId?: string;
+    department?: string;
+    designation?: string;
+    employeeCode?: string;
+  }): Promise<{ success: boolean; token?: string; message?: string }> => {
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await safeParseJson<{ success: boolean; token?: string; message?: string }>(res, {
+        success: false,
+        message: 'Registration request failed',
+      });
+      if (data.success && data.token) {
+        setApiAuthToken(data.token);
+        return { success: true, token: data.token };
+      }
+      return { success: false, message: data.message || 'Registration failed' };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Network request failed' };
     }
   },
 
@@ -423,4 +482,89 @@ export const api = {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   },
+
+  // Fee Management
+  getFeeStructures: async (courseId?: string): Promise<CourseFeeStructure[]> => {
+    try {
+      const params = new URLSearchParams();
+      if (courseId) params.set('courseId', courseId);
+      const res = await authFetch(`/api/academic/fees/structures?${params.toString()}`);
+      const data = await safeParseJson<{ success: boolean; data?: CourseFeeStructure[] }>(res, { success: false, data: [] });
+      return data.success && Array.isArray(data.data) ? data.data : [];
+    } catch (err) {
+      console.warn('[API] getFeeStructures error:', err);
+      return [];
+    }
+  },
+
+  getStudentFeeRecords: async (studentId?: string): Promise<StudentFeeRecord[]> => {
+    try {
+      const params = new URLSearchParams();
+      if (studentId) params.set('studentId', studentId);
+      const res = await authFetch(`/api/academic/fees/records?${params.toString()}`);
+      const data = await safeParseJson<{ success: boolean; data?: StudentFeeRecord[] }>(res, { success: false, data: [] });
+      return data.success && Array.isArray(data.data) ? data.data : [];
+    } catch (err) {
+      console.warn('[API] getStudentFeeRecords error:', err);
+      return [];
+    }
+  },
+
+  recordFeePayment: async (payload: {
+    studentId: string;
+    amount: number;
+    assessedSemester?: number;
+    receiptNumber?: string;
+  }): Promise<{ success: boolean; data?: StudentFeeRecord; message?: string }> => {
+    try {
+      const res = await authFetch('/api/academic/fees/payment', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      return await safeParseJson<{ success: boolean; data?: StudentFeeRecord; message?: string }>(res, {
+        success: false,
+        message: 'Failed to record fee payment',
+      });
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  // Academic Management Creation
+  createCourse: async (payload: { courseCode: string; name: string; totalSemesters: number; durationYears: number }) => {
+    try {
+      const res = await authFetch('/api/academic/courses', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      return await safeParseJson<{ success: boolean; data?: any; message?: string }>(res, { success: false, message: 'Failed to create course' });
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  createSubject: async (payload: { subjectCode: string; name: string; courseId: string; semester: number; isRequired: boolean; electiveGroup?: string; credits: number }) => {
+    try {
+      const res = await authFetch('/api/academic/subjects', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      return await safeParseJson<{ success: boolean; data?: any; message?: string }>(res, { success: false, message: 'Failed to create subject' });
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  createStudent: async (payload: { name: string; email: string; rollNo: string; enrollmentNo: string; courseId: string; currentSemester: number; admissionSessionId?: string }) => {
+    try {
+      const res = await authFetch('/api/academic/students', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      return await safeParseJson<{ success: boolean; data?: any; message?: string }>(res, { success: false, message: 'Failed to create student' });
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
 };
+
