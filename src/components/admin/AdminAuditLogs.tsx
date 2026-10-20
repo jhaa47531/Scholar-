@@ -20,7 +20,7 @@ export const AdminAuditLogs: React.FC<AdminAuditLogsProps> = ({ logs, auditLogs 
       const matchSearch =
         log.actorId.toLowerCase().includes(searchTerm.toLowerCase()) ||
         log.entityId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.reason.toLowerCase().includes(searchTerm.toLowerCase());
+        (log.reason || '').toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchEntity = selectedEntity === 'ALL' || log.entityType === selectedEntity;
 

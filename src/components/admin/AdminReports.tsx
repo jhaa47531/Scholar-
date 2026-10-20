@@ -47,7 +47,7 @@ export const AdminReports: React.FC<AdminReportsProps> = ({
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const res = await api.getSessionalReport(selectedStudentId, selectedSessionId, selectedSessionalNum);
+      const res = await api.getSessionalReport(selectedSessionId, selectedSessionalNum, selectedStudentId);
       if (res.success && res.data) {
         setReport(res.data);
       } else {

@@ -581,6 +581,7 @@ export default function App() {
                 <TeacherRoster
                   assignments={currentTeacherAssignments}
                   subjects={subjects}
+                  students={students}
                 />
               )}
               {activePage === 'marks_entry' && (
@@ -597,7 +598,6 @@ export default function App() {
                 <TeacherDrafts
                   assignments={currentTeacherAssignments}
                   subjects={subjects}
-                  sessions={sessions}
                   activeSessionId={selectedSessionId}
                   onOpenMarksEntry={(subId) => {
                     setSelectedTeacherSubject(subId);
@@ -609,7 +609,6 @@ export default function App() {
                 <TeacherFinalSubmissions
                   assignments={currentTeacherAssignments}
                   subjects={subjects}
-                  sessions={sessions}
                   activeSessionId={selectedSessionId}
                   onOpenMarksEntry={(subId) => {
                     setSelectedTeacherSubject(subId);

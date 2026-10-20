@@ -1,7 +1,7 @@
 import { Request, Response, Router } from 'express';
 import { activeAcademicRepo, activeAuditRepo } from '../../repositories/index.ts';
 import { requireAuth, requireRole } from '../middleware/auth.ts';
-import { UserRole } from '../../types/domain.ts';
+import { UserRole, CourseStructure, SubjectMaster, StudentProfile, TeacherProfile } from '../../types/domain.ts';
 import { getFirebaseAdminApp } from '../auth/firebaseAdmin.ts';
 
 export const academicRouter = Router();

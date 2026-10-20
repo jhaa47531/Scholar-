@@ -530,8 +530,18 @@ export const api = {
     }
   },
 
+  // Migration
+  getMigrationPlan: async (): Promise<{ success: boolean; data?: any; message?: string }> => {
+    try {
+      const res = await authFetch('/api/migration/overview');
+      return await safeParseJson<{ success: boolean; data?: any; message?: string }>(res, { success: false, message: 'Failed to load migration overview' });
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
   // Academic Management CRUD
-  createCourse: async (payload: { courseCode: string; name: string; totalSemesters: number; durationYears: number }) => {
+  createCourse: async (payload: { courseCode: string; name: string; totalSemesters: number; durationYears: number }): Promise<{ success: boolean; data?: any; message?: string }> => {
     try {
       const res = await authFetch('/api/academic/courses', {
         method: 'POST',
@@ -543,7 +553,7 @@ export const api = {
     }
   },
 
-  updateCourse: async (id: string, payload: Partial<CourseStructure>) => {
+  updateCourse: async (id: string, payload: Partial<CourseStructure>): Promise<{ success: boolean; data?: any; message?: string }> => {
     try {
       const res = await authFetch(`/api/academic/courses/${id}`, {
         method: 'PUT',
@@ -555,7 +565,7 @@ export const api = {
     }
   },
 
-  deleteCourse: async (id: string) => {
+  deleteCourse: async (id: string): Promise<{ success: boolean; action?: string; message?: string; data?: any }> => {
     try {
       const res = await authFetch(`/api/academic/courses/${id}`, {
         method: 'DELETE',
@@ -566,7 +576,7 @@ export const api = {
     }
   },
 
-  createSubject: async (payload: { subjectCode: string; name: string; courseId: string; semester: number; isRequired: boolean; electiveGroup?: string; credits: number }) => {
+  createSubject: async (payload: { subjectCode: string; name: string; courseId: string; semester: number; isRequired: boolean; electiveGroup?: string; credits: number }): Promise<{ success: boolean; data?: any; message?: string }> => {
     try {
       const res = await authFetch('/api/academic/subjects', {
         method: 'POST',
@@ -578,7 +588,7 @@ export const api = {
     }
   },
 
-  updateSubject: async (id: string, payload: Partial<SubjectMaster>) => {
+  updateSubject: async (id: string, payload: Partial<SubjectMaster>): Promise<{ success: boolean; data?: any; message?: string }> => {
     try {
       const res = await authFetch(`/api/academic/subjects/${id}`, {
         method: 'PUT',
@@ -590,7 +600,7 @@ export const api = {
     }
   },
 
-  deleteSubject: async (id: string) => {
+  deleteSubject: async (id: string): Promise<{ success: boolean; action?: string; message?: string; data?: any }> => {
     try {
       const res = await authFetch(`/api/academic/subjects/${id}`, {
         method: 'DELETE',
@@ -601,7 +611,7 @@ export const api = {
     }
   },
 
-  createStudent: async (payload: { name: string; email: string; rollNo: string; enrollmentNo: string; courseId: string; currentSemester: number; admissionSessionId?: string }) => {
+  createStudent: async (payload: { name: string; email: string; rollNo: string; enrollmentNo: string; courseId: string; currentSemester: number; admissionSessionId?: string }): Promise<{ success: boolean; data?: any; message?: string }> => {
     try {
       const res = await authFetch('/api/academic/students', {
         method: 'POST',
@@ -613,7 +623,7 @@ export const api = {
     }
   },
 
-  updateStudent: async (id: string, payload: Partial<StudentProfile>) => {
+  updateStudent: async (id: string, payload: Partial<StudentProfile>): Promise<{ success: boolean; data?: any; message?: string }> => {
     try {
       const res = await authFetch(`/api/academic/students/${id}`, {
         method: 'PUT',
@@ -625,7 +635,7 @@ export const api = {
     }
   },
 
-  createTeacher: async (payload: { name: string; email: string; employeeCode?: string; department?: string; designation?: string }) => {
+  createTeacher: async (payload: { name: string; email: string; employeeCode?: string; department?: string; designation?: string }): Promise<{ success: boolean; data?: any; message?: string }> => {
     try {
       const res = await authFetch('/api/academic/teachers', {
         method: 'POST',
@@ -637,7 +647,7 @@ export const api = {
     }
   },
 
-  updateTeacher: async (id: string, payload: Partial<TeacherProfile>) => {
+  updateTeacher: async (id: string, payload: Partial<TeacherProfile>): Promise<{ success: boolean; data?: any; message?: string }> => {
     try {
       const res = await authFetch(`/api/academic/teachers/${id}`, {
         method: 'PUT',
