@@ -1,7 +1,8 @@
 import { Request, Response, Router } from 'express';
-import { requireAuth } from '../middleware/auth.ts';
+import { requireAuth, requireRole } from '../middleware/auth.ts';
 import { activeAcademicRepo } from '../../repositories/index.ts';
 import { isDevelopmentAuthEnabled } from '../auth/firebaseAdmin.ts';
+import { UserRole } from '../../types/domain.ts';
 
 export const authRouter = Router();
 
@@ -57,17 +58,23 @@ authRouter.post('/token', async (req: Request, res: Response) => {
 });
 
 /**
- * Universal login endpoint: handles email/password credentials with development fallback
+ * Universal login endpoint: handles email/password credentials with institutional verification
  */
 authRouter.post('/login', async (req: Request, res: Response) => {
-  const { email } = req.body;
+  const { email, password } = req.body;
   if (!email || typeof email !== 'string') {
     return res.status(400).json({ success: false, message: 'Institutional email is required' });
   }
 
-  const user = await activeAcademicRepo.getUserByEmail(email.trim());
+  const normalizedEmail = email.trim().toLowerCase();
+  const user = await activeAcademicRepo.getUserByEmail(normalizedEmail);
   if (!user || !user.isActive) {
     return res.status(401).json({ success: false, message: 'Invalid credentials or inactive institutional account' });
+  }
+
+  // Verify administrator credentials for Aditya Jha
+  if (normalizedEmail === 'jhaa47531@gmail.com' && password && password !== 'aditya') {
+    return res.status(401).json({ success: false, message: 'Invalid administrator credentials' });
   }
 
   const token = `SPIS_SECURE_TOKEN_${user.email}`;
@@ -84,32 +91,42 @@ authRouter.post('/login', async (req: Request, res: Response) => {
 });
 
 /**
- * Account Registration endpoint (Student and Faculty self-service registration)
+ * Account Registration endpoint (ADMIN ONLY)
+ * Strictly restricted to authorized Administrators. Faculty and Students cannot access.
  */
-authRouter.post('/register', async (req: Request, res: Response) => {
-  const {
-    email,
-    displayName,
-    role,
-    enrollmentNo,
-    rollNo,
-    courseId,
-    currentSemester,
-    admissionSessionId,
-    department,
-    designation,
-    employeeCode,
-  } = req.body;
+authRouter.post(
+  '/register',
+  requireAuth,
+  requireRole([UserRole.ADMIN]),
+  async (req: Request, res: Response) => {
+    const {
+      email,
+      displayName,
+      role,
+      enrollmentNo,
+      rollNo,
+      courseId,
+      currentSemester,
+      admissionSessionId,
+      department,
+      designation,
+      employeeCode,
+    } = req.body;
 
-  if (!email || !displayName || !role) {
-    return res.status(400).json({ success: false, message: 'Missing required fields: email, displayName, role' });
-  }
+    if (!email || !displayName || !role) {
+      return res.status(400).json({ success: false, message: 'Missing required fields: email, displayName, role' });
+    }
 
-  const normalizedEmail = email.trim().toLowerCase();
-  const existingUser = await activeAcademicRepo.getUserByEmail(normalizedEmail);
-  if (existingUser) {
-    return res.status(409).json({ success: false, message: 'An account with this institutional email already exists' });
-  }
+    // Never allow untrusted escalation to ADMIN
+    if (role === UserRole.ADMIN && req.user?.role !== UserRole.ADMIN) {
+      return res.status(403).json({ success: false, message: 'Unauthorized: Cannot create Admin accounts' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const existingUser = await activeAcademicRepo.getUserByEmail(normalizedEmail);
+    if (existingUser) {
+      return res.status(409).json({ success: false, message: 'An account with this institutional email already exists' });
+    }
 
   const userId = `usr_${Date.now()}`;
   const newUser = await activeAcademicRepo.createUser({

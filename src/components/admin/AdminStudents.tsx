@@ -44,6 +44,13 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({
   const [courseId, setCourseId] = useState(courses[0]?.id || 'crs_bca');
   const [currentSemester, setCurrentSemester] = useState('1');
 
+  // Keep courseId synchronized when courses load
+  React.useEffect(() => {
+    if (courses.length > 0 && (!courseId || !courses.some((c) => c.id === courseId))) {
+      setCourseId(courses[0].id);
+    }
+  }, [courses, courseId]);
+
   // Edit Student Form State
   const [editName, setEditName] = useState('');
   const [editRollNo, setEditRollNo] = useState('');
@@ -73,13 +80,19 @@ export const AdminStudents: React.FC<AdminStudentsProps> = ({
         s.rollNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         s.email.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchCourse = selectedCourse === 'ALL' || s.courseId === selectedCourse;
+      const selectedCourseCode = courseMap.get(selectedCourse)?.courseCode;
+      const matchCourse =
+        selectedCourse === 'ALL' ||
+        s.courseId === selectedCourse ||
+        s.courseId.toLowerCase() === selectedCourse.toLowerCase() ||
+        (selectedCourseCode && s.courseId.toLowerCase() === selectedCourseCode.toLowerCase());
+
       const matchSemester =
-        selectedSemester === 'ALL' || s.currentSemester.toString() === selectedSemester;
+        selectedSemester === 'ALL' || Number(s.currentSemester) === Number(selectedSemester);
 
       return matchSearch && matchCourse && matchSemester;
     });
-  }, [students, searchTerm, selectedCourse, selectedSemester]);
+  }, [students, searchTerm, selectedCourse, selectedSemester, courseMap]);
 
   const openAddModal = () => {
     setName('');

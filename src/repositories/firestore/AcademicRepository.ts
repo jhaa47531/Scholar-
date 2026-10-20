@@ -202,8 +202,14 @@ export class AcademicRepository implements IAcademicRepository {
 
   async getSubjects(courseId?: string, semester?: number): Promise<SubjectMaster[]> {
     let list = Array.from(this.subjects.values());
-    if (courseId) list = list.filter((s) => s.courseId === courseId);
-    if (semester !== undefined) list = list.filter((s) => s.semester === semester);
+    if (courseId) {
+      const targetCourse = this.courses.get(courseId) || Array.from(this.courses.values()).find(c => c.courseCode.toUpperCase() === courseId.toUpperCase());
+      const targetId = targetCourse ? targetCourse.id : courseId;
+      list = list.filter((s) => s.courseId === targetId || s.courseId === courseId || s.courseId.toUpperCase() === courseId.toUpperCase());
+    }
+    if (semester !== undefined) {
+      list = list.filter((s) => Number(s.semester) === Number(semester));
+    }
     return list;
   }
 

@@ -37,6 +37,13 @@ export const AdminCourses: React.FC<AdminCoursesProps> = ({
   );
   const [selectedSemester, setSelectedSemester] = useState<number>(1);
 
+  // Keep selected course synchronized when courses load
+  React.useEffect(() => {
+    if (courses.length > 0 && (!selectedCourseId || !courses.some((c) => c.id === selectedCourseId))) {
+      setSelectedCourseId(courses[0].id);
+    }
+  }, [courses, selectedCourseId]);
+
   // Modals
   const [isAddCourseModalOpen, setIsAddCourseModalOpen] = useState(false);
   const [isEditCourseModalOpen, setIsEditCourseModalOpen] = useState(false);
@@ -68,15 +75,21 @@ export const AdminCourses: React.FC<AdminCoursesProps> = ({
     return courses.find((c) => c.id === selectedCourseId) || courses[0];
   }, [courses, selectedCourseId]);
 
-  // Subjects assigned to the selected course
+  // Subjects assigned to the selected course (robust to courseId or courseCode matching)
   const courseSubjects = useMemo(() => {
     if (!activeCourse) return [];
-    return subjects.filter((s) => s.courseId === activeCourse.id);
+    return subjects.filter(
+      (s) =>
+        s.courseId === activeCourse.id ||
+        s.courseId === activeCourse.courseCode ||
+        s.courseId.toLowerCase() === activeCourse.id.toLowerCase() ||
+        s.courseId.toLowerCase() === activeCourse.courseCode.toLowerCase()
+    );
   }, [subjects, activeCourse]);
 
   // Subjects assigned to the selected semester
   const semesterSubjects = useMemo(() => {
-    return courseSubjects.filter((s) => s.semester === selectedSemester);
+    return courseSubjects.filter((s) => Number(s.semester) === Number(selectedSemester));
   }, [courseSubjects, selectedSemester]);
 
   // Open Edit Course
@@ -321,7 +334,12 @@ export const AdminCourses: React.FC<AdminCoursesProps> = ({
       {/* Courses Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         {courses.map((course) => {
-          const cSubs = subjects.filter((s) => s.courseId === course.id);
+          const cSubs = subjects.filter(
+            (s) =>
+              s.courseId === course.id ||
+              s.courseId.toLowerCase() === course.id.toLowerCase() ||
+              s.courseId.toLowerCase() === course.courseCode.toLowerCase()
+          );
           const isSelected = activeCourse?.id === course.id;
 
           return (
@@ -419,7 +437,7 @@ export const AdminCourses: React.FC<AdminCoursesProps> = ({
           {/* Semester Tabs */}
           <div className="px-5 pt-3 border-b border-slate-200 flex items-center gap-1.5 overflow-x-auto bg-white">
             {Array.from({ length: activeCourse.totalSemesters }, (_, i) => i + 1).map((sem) => {
-              const semCount = courseSubjects.filter((s) => s.semester === sem).length;
+              const semCount = courseSubjects.filter((s) => Number(s.semester) === Number(sem)).length;
               const isTabActive = selectedSemester === sem;
 
               return (

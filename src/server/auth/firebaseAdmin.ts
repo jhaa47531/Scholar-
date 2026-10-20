@@ -11,6 +11,23 @@ export function isDevelopmentAuthEnabled(): boolean {
   return process.env.NODE_ENV !== 'production';
 }
 
+export function getNormalizedClientEmail(): string | undefined {
+  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
+  let clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  if (clientEmail) {
+    clientEmail = clientEmail.trim();
+    if (projectId && clientEmail.startsWith('firebase-adminsdk-') && !clientEmail.endsWith('.iam.gserviceaccount.com')) {
+      const prefix = clientEmail.split('@')[0];
+      clientEmail = `${prefix}@${projectId}.iam.gserviceaccount.com`;
+      process.env.FIREBASE_CLIENT_EMAIL = clientEmail;
+    }
+  }
+  return clientEmail;
+}
+
+// Ensure client email in environment is immediately normalized
+getNormalizedClientEmail();
+
 export function initializeFirebaseAdmin(): App | null {
   if (firebaseAdminApp) {
     return firebaseAdminApp;
@@ -20,11 +37,14 @@ export function initializeFirebaseAdmin(): App | null {
   if (existingApps.length > 0) {
     firebaseAdminApp = existingApps[0];
     firebaseFirestoreDb = getFirestore(firebaseAdminApp);
+    try {
+      firebaseFirestoreDb.settings({ ignoreUndefinedProperties: true });
+    } catch (_) {}
     return firebaseAdminApp;
   }
 
   const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const clientEmail = getNormalizedClientEmail();
   let privateKey = process.env.FIREBASE_PRIVATE_KEY;
 
   const isPlaceholder =
@@ -64,6 +84,9 @@ export function initializeFirebaseAdmin(): App | null {
         }),
       });
       firebaseFirestoreDb = getFirestore(firebaseAdminApp);
+      try {
+        firebaseFirestoreDb.settings({ ignoreUndefinedProperties: true });
+      } catch (_) {}
       console.log(`[Firebase Admin] Successfully initialized for project ${projectId}.`);
       return firebaseAdminApp;
     } catch (err: any) {
@@ -81,6 +104,9 @@ export function getFirebaseAdminApp(): App | null {
 export function getFirestoreDb(): Firestore | null {
   if (!firebaseFirestoreDb && firebaseAdminApp) {
     firebaseFirestoreDb = getFirestore(firebaseAdminApp);
+    try {
+      firebaseFirestoreDb.settings({ ignoreUndefinedProperties: true });
+    } catch (_) {}
   }
   return firebaseFirestoreDb;
 }

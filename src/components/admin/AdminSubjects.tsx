@@ -46,6 +46,13 @@ export const AdminSubjects: React.FC<AdminSubjectsProps> = ({
   const [electiveGroup, setElectiveGroup] = useState('');
   const [isActive, setIsActive] = useState(true);
 
+  // Sync courseId when courses prop updates
+  React.useEffect(() => {
+    if (courses.length > 0 && (!courseId || !courses.some((c) => c.id === courseId))) {
+      setCourseId(courses[0].id);
+    }
+  }, [courses, courseId]);
+
   // Feedback State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -66,13 +73,19 @@ export const AdminSubjects: React.FC<AdminSubjectsProps> = ({
         s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         s.subjectCode.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchCourse = selectedCourse === 'ALL' || s.courseId === selectedCourse;
+      const selectedCourseCode = courseMap.get(selectedCourse)?.courseCode;
+      const matchCourse =
+        selectedCourse === 'ALL' ||
+        s.courseId === selectedCourse ||
+        s.courseId.toLowerCase() === selectedCourse.toLowerCase() ||
+        (selectedCourseCode && s.courseId.toLowerCase() === selectedCourseCode.toLowerCase());
+
       const matchSemester =
-        selectedSemester === 'ALL' || s.semester.toString() === selectedSemester;
+        selectedSemester === 'ALL' || Number(s.semester) === Number(selectedSemester);
 
       return matchSearch && matchCourse && matchSemester;
     });
-  }, [subjects, searchTerm, selectedCourse, selectedSemester]);
+  }, [subjects, searchTerm, selectedCourse, selectedSemester, courseMap]);
 
   const openAddModal = () => {
     setSubjectCode('');
