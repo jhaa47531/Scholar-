@@ -4,14 +4,9 @@ import {
   Save,
   CheckCircle2,
   AlertCircle,
-  HelpCircle,
   Shield,
-  Layers,
-  ArrowRight,
   Eye,
   RefreshCw,
-  Clock,
-  Sparkles,
 } from 'lucide-react';
 import {
   AcademicSession,
@@ -126,7 +121,6 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
     const maxMarks = sheetData?.config?.maxMarks || 25;
 
     if (row.examAttendance === ExamAttendance.NOT_ATTENDED) {
-      // 0 for exam, check if others present
       const att = Number(row.classAttendancePct || 0);
       const ass = Number(row.assignmentScore || 0);
       const pre = Number(row.presentationScore || 0);
@@ -142,7 +136,7 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
       row.presentationScore === '' ||
       row.classInteractionScore === ''
     ) {
-      return null; // Incomplete
+      return null;
     }
 
     const examPct = (Number(row.obtainedMarks) / maxMarks) * 100;
@@ -237,13 +231,13 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#162740]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-          <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-            <FileSpreadsheet className="w-5 h-5 text-amber-400" />
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <FileSpreadsheet className="w-5 h-5 text-indigo-600" />
             Subject Assessment Marks Entry Matrix
           </h1>
-          <p className="mt-0.5 text-xs text-slate-400">
+          <p className="mt-0.5 text-xs text-slate-500">
             Real-time multi-component grading with weighted scoring: Sessional (40%), Attendance (20%), Assignment (15%), Presentation (15%), Interaction (10%).
           </p>
         </div>
@@ -251,7 +245,7 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
         {sheetData && (
           <button
             onClick={() => setIsReviewModalOpen(true)}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-bold text-xs shadow-md shadow-amber-500/20 transition-all flex items-center gap-2 cursor-pointer shrink-0"
+            className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition-all flex items-center gap-2 cursor-pointer shrink-0"
           >
             <CheckCircle2 className="w-4 h-4" />
             Review & Final Submit Batch
@@ -261,17 +255,17 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
 
       {/* Success Banner */}
       {successBanner && (
-        <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>{successBanner}</span>
         </div>
       )}
 
       {/* Selection Filters Strip */}
-      <div className="p-4 rounded-xl surface-navy border border-[#192b45] flex flex-wrap items-center gap-4">
+      <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-wrap items-center gap-4">
         {/* Subject Select */}
         <div className="space-y-1">
-          <label className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
+          <label className="text-[11px] font-semibold text-slate-600 block">
             Authorized Subject
           </label>
           <select
@@ -280,7 +274,7 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
               setSelectedSubjectId(e.target.value);
               if (onSubjectChange) onSubjectChange(e.target.value);
             }}
-            className="bg-slate-900 border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white font-medium focus:outline-none focus:border-amber-500 cursor-pointer"
+            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 font-medium focus:outline-none focus:border-indigo-500 focus:bg-white cursor-pointer"
           >
             {myAssignedSubjects.map((sub) => (
               <option key={sub.id} value={sub.id}>
@@ -292,13 +286,13 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
 
         {/* Academic Session */}
         <div className="space-y-1">
-          <label className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
+          <label className="text-[11px] font-semibold text-slate-600 block">
             Academic Session
           </label>
           <select
             value={selectedSessionId}
             onChange={(e) => setSelectedSessionId(e.target.value)}
-            className="bg-slate-900 border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-white font-medium focus:outline-none focus:border-amber-500 cursor-pointer"
+            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 font-medium focus:outline-none focus:border-indigo-500 focus:bg-white cursor-pointer"
           >
             {sessions.map((s) => (
               <option key={s.id} value={s.id}>
@@ -310,16 +304,16 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
 
         {/* Sessional Number Toggle */}
         <div className="space-y-1">
-          <label className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
+          <label className="text-[11px] font-semibold text-slate-600 block">
             Assessment Track
           </label>
-          <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-lg border border-slate-800">
+          <div className="flex items-center gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200">
             <button
               onClick={() => setSelectedSessionalNum(SessionalNumber.SESSIONAL_1)}
               className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
                 selectedSessionalNum === SessionalNumber.SESSIONAL_1
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-white text-indigo-700 shadow-2xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Sessional 1
@@ -328,8 +322,8 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
               onClick={() => setSelectedSessionalNum(SessionalNumber.SESSIONAL_2)}
               className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
                 selectedSessionalNum === SessionalNumber.SESSIONAL_2
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-white text-indigo-700 shadow-2xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               Sessional 2
@@ -340,7 +334,7 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
         <button
           onClick={loadSheet}
           disabled={loadingSheet}
-          className="ml-auto p-2 rounded-lg bg-slate-850 hover:bg-slate-800 text-slate-300 border border-slate-700 transition-colors cursor-pointer"
+          className="ml-auto p-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 transition-colors cursor-pointer"
           title="Refresh Marks Sheet"
         >
           <RefreshCw className={`w-4 h-4 ${loadingSheet ? 'animate-spin' : ''}`} />
@@ -349,10 +343,10 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
 
       {/* Spreadsheet Content */}
       {loadingSheet ? (
-        <LoadingSkeleton count={6} height="h-16" />
+        <LoadingSkeleton rows={6} />
       ) : sheetError ? (
-        <div className="p-8 text-center surface-navy rounded-xl border border-rose-500/30 text-rose-300 text-xs space-y-2">
-          <AlertCircle className="w-8 h-8 text-rose-400 mx-auto" />
+        <div className="p-8 text-center bg-white rounded-xl border border-rose-200 text-rose-700 text-xs space-y-2 shadow-xs">
+          <AlertCircle className="w-8 h-8 text-rose-600 mx-auto" />
           <p className="font-semibold">{sheetError}</p>
         </div>
       ) : !sheetData || sheetData.rows.length === 0 ? (
@@ -362,25 +356,25 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
           icon={FileSpreadsheet}
         />
       ) : (
-        <div className="surface-navy rounded-xl border border-[#192b45] overflow-hidden">
-          <div className="p-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-900/60">
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+          <div className="p-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50">
             <div className="flex items-center gap-3">
-              <span className="font-mono text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg">
+              <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-lg">
                 Max Marks: {sheetData.config.maxMarks}
               </span>
-              <span className="text-xs text-slate-300 font-medium">
+              <span className="text-xs text-slate-700 font-medium">
                 {sheetData.rows.length} Enrolled Student Records
               </span>
             </div>
 
-            <div className="text-[11px] text-slate-400 font-mono flex items-center gap-3">
-              <span>Weights: S:40% · A:20% · Ass:15% · P:15% · I:10%</span>
+            <div className="text-[11px] text-slate-500 font-mono flex items-center gap-3">
+              <span>Weights: Exam:40% · Att:20% · Ass:15% · Pre:15% · Int:10%</span>
             </div>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-900/90 text-slate-400 font-mono uppercase text-[11px] border-b border-slate-800">
+              <thead className="bg-slate-50 text-slate-500 font-mono uppercase text-[11px] border-b border-slate-200">
                 <tr>
                   <th className="px-4 py-3">Roll No & Student</th>
                   <th className="px-3 py-3 text-center">Attendance Status</th>
@@ -394,7 +388,7 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800 font-medium">
+              <tbody className="divide-y divide-slate-100 font-medium">
                 {sheetData.rows.map((row: any) => {
                   const state = marksState[row.student.id] || {};
                   const isAbsent = state.examAttendance === ExamAttendance.NOT_ATTENDED;
@@ -404,14 +398,14 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
                   return (
                     <tr
                       key={row.student.id}
-                      className={`hover:bg-slate-850/50 transition-colors ${
-                        isFinal ? 'bg-emerald-950/10' : ''
+                      className={`hover:bg-slate-50/80 transition-colors ${
+                        isFinal ? 'bg-emerald-50/40' : ''
                       }`}
                     >
                       {/* Student Info */}
                       <td className="px-4 py-3.5">
-                        <div className="font-mono font-bold text-white text-xs">{row.student.rollNo}</div>
-                        <div className="text-slate-300 text-xs font-semibold">{row.student.name}</div>
+                        <div className="font-mono font-bold text-indigo-700 text-xs">{row.student.rollNo}</div>
+                        <div className="text-slate-900 text-xs font-semibold">{row.student.name}</div>
                         <div className="text-[10px] text-slate-500 font-mono">{row.student.enrollmentNo}</div>
                       </td>
 
@@ -423,14 +417,14 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
                           onChange={(e) => handleInputChange(row.student.id, 'examAttendance', e.target.value)}
                           className={`text-[11px] font-mono px-2 py-1 rounded border focus:outline-none cursor-pointer ${
                             isAbsent
-                              ? 'bg-rose-500/10 text-rose-300 border-rose-500/30'
-                              : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
+                              ? 'bg-rose-50 text-rose-700 border-rose-200'
+                              : 'bg-emerald-50 text-emerald-800 border-emerald-200'
                           }`}
                         >
-                          <option value={ExamAttendance.ATTENDED} className="bg-slate-900 text-slate-100">
+                          <option value={ExamAttendance.ATTENDED}>
                             Attended
                           </option>
-                          <option value={ExamAttendance.NOT_ATTENDED} className="bg-slate-900 text-slate-100">
+                          <option value={ExamAttendance.NOT_ATTENDED}>
                             Absent (0)
                           </option>
                         </select>
@@ -444,10 +438,10 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
                           max={sheetData.config.maxMarks}
                           step="0.5"
                           disabled={isFinal || isAbsent}
-                          placeholder={isAbsent ? '0 (Absent)' : 'Marks'}
+                          placeholder={isAbsent ? '0' : 'Marks'}
                           value={isAbsent ? '0' : state.obtainedMarks}
                           onChange={(e) => handleInputChange(row.student.id, 'obtainedMarks', e.target.value)}
-                          className="w-20 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-center font-mono text-xs text-white focus:outline-none focus:border-amber-500 disabled:opacity-50"
+                          className="w-20 bg-white border border-slate-300 rounded px-2 py-1 text-center font-mono text-xs text-slate-800 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
                         />
                       </td>
 
@@ -461,7 +455,7 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
                           placeholder="0-100"
                           value={state.classAttendancePct}
                           onChange={(e) => handleInputChange(row.student.id, 'classAttendancePct', e.target.value)}
-                          className="w-16 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-center font-mono text-xs text-white focus:outline-none focus:border-amber-500 disabled:opacity-50"
+                          className="w-16 bg-white border border-slate-300 rounded px-2 py-1 text-center font-mono text-xs text-slate-800 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
                         />
                       </td>
 
@@ -475,7 +469,7 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
                           placeholder="0-100"
                           value={state.assignmentScore}
                           onChange={(e) => handleInputChange(row.student.id, 'assignmentScore', e.target.value)}
-                          className="w-16 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-center font-mono text-xs text-white focus:outline-none focus:border-amber-500 disabled:opacity-50"
+                          className="w-16 bg-white border border-slate-300 rounded px-2 py-1 text-center font-mono text-xs text-slate-800 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
                         />
                       </td>
 
@@ -489,7 +483,7 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
                           placeholder="0-100"
                           value={state.presentationScore}
                           onChange={(e) => handleInputChange(row.student.id, 'presentationScore', e.target.value)}
-                          className="w-16 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-center font-mono text-xs text-white focus:outline-none focus:border-amber-500 disabled:opacity-50"
+                          className="w-16 bg-white border border-slate-300 rounded px-2 py-1 text-center font-mono text-xs text-slate-800 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
                         />
                       </td>
 
@@ -503,29 +497,29 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
                           placeholder="0-100"
                           value={state.classInteractionScore}
                           onChange={(e) => handleInputChange(row.student.id, 'classInteractionScore', e.target.value)}
-                          className="w-16 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-center font-mono text-xs text-white focus:outline-none focus:border-amber-500 disabled:opacity-50"
+                          className="w-16 bg-white border border-slate-300 rounded px-2 py-1 text-center font-mono text-xs text-slate-800 focus:outline-none focus:border-indigo-500 disabled:opacity-50"
                         />
                       </td>
 
                       {/* Live Calculated Score */}
                       <td className="px-3 py-3.5 text-center font-mono">
                         {liveScore !== null ? (
-                          <span className="font-bold text-amber-400 tabular-nums text-xs">
+                          <span className="font-bold text-indigo-700 tabular-nums text-xs">
                             {liveScore}%
                           </span>
                         ) : (
-                          <span className="text-[10px] text-slate-500 italic">Incomplete</span>
+                          <span className="text-[10px] text-slate-400 italic">Incomplete</span>
                         )}
                       </td>
 
                       {/* Status */}
                       <td className="px-3 py-3.5 text-center">
                         {isFinal ? (
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
                             FINAL SUBMITTED
                           </span>
                         ) : (
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 font-semibold">
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 font-semibold">
                             DRAFT
                           </span>
                         )}
@@ -537,10 +531,10 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
                           <button
                             onClick={() => handleSaveDraft(row.student.id)}
                             disabled={savingDraftFor === row.student.id}
-                            className="px-2.5 py-1 text-[11px] font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-md transition-colors cursor-pointer inline-flex items-center gap-1"
+                            className="px-2.5 py-1 text-[11px] font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-md transition-colors cursor-pointer inline-flex items-center gap-1"
                             title="Save as Draft (Invisible to student until final submit)"
                           >
-                            <Save className="w-3 h-3 text-amber-400" />
+                            <Save className="w-3 h-3 text-indigo-600" />
                             {savingDraftFor === row.student.id ? 'Saving...' : 'Save Draft'}
                           </button>
                         )}
@@ -556,29 +550,29 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
 
       {/* Confirmation Review Modal for Final Submit */}
       {isReviewModalOpen && sheetData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
-          <div className="surface-navy-elevated rounded-2xl border border-slate-800 max-w-lg w-full p-6 space-y-5 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full p-6 space-y-5 shadow-2xl">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400">
+              <div className="p-2.5 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600">
                 <Shield className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-white">Confirm Final Batch Submission</h3>
-                <p className="text-xs text-slate-400">
+                <h3 className="text-base font-bold text-slate-900">Confirm Final Batch Submission</h3>
+                <p className="text-xs text-slate-500">
                   {sheetData.subject.subjectCode} - {sheetData.subject.name} (Sessional {selectedSessionalNum})
                 </p>
               </div>
             </div>
 
-            <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 space-y-2.5">
-              <div className="font-semibold text-amber-300 flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-amber-400" />
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 space-y-2.5">
+              <div className="font-semibold text-indigo-700 flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-indigo-600" />
                 Assessment Submission Preconditions Verified:
               </div>
-              <ul className="space-y-1.5 text-slate-400 list-disc list-inside">
-                <li>Total Students in Batch: <strong className="text-white font-mono">{sheetData.rows.length}</strong></li>
+              <ul className="space-y-1.5 text-slate-600 list-disc list-inside">
+                <li>Total Students in Batch: <strong className="text-slate-900 font-mono">{sheetData.rows.length}</strong></li>
                 <li>Weighted formula v1.0 applied (40% Exam, 20% Att, 15% Ass, 15% Pre, 10% Int).</li>
-                <li className="text-amber-200">
+                <li className="text-amber-800 font-medium">
                   <strong>Notice:</strong> Once finalized, marks immediately become visible to enrolled students. Any post-submission changes will require a formal Dean-authorized correction reason logged in the immutable audit trail.
                 </li>
               </ul>
@@ -588,14 +582,14 @@ export const TeacherMarksEntry: React.FC<TeacherMarksEntryProps> = ({
               <button
                 onClick={() => setIsReviewModalOpen(false)}
                 disabled={isSubmittingFinal}
-                className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
               >
                 Cancel & Keep Editing
               </button>
               <button
                 onClick={handleConfirmFinalSubmit}
                 disabled={isSubmittingFinal}
-                className="px-5 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition-all shadow-md shadow-amber-600/20 flex items-center gap-1.5 cursor-pointer"
+                className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 {isSubmittingFinal ? 'Confirming...' : 'Confirm Final Submission'}

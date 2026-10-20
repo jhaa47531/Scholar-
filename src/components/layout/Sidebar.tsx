@@ -112,11 +112,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
           {!isCollapsed && (
             <div className="truncate">
-              <span className="font-bold text-sm tracking-tight text-slate-900 block">
-                ScholarSense
+              <span className="font-bold text-xs tracking-tight text-slate-900 block truncate" title="Global Institute of Information and Technology">
+                Global Institute of IT
               </span>
               <span className="text-[10px] text-indigo-600 font-mono tracking-wider block font-semibold">
-                SPIS PLATFORM
+                ScholarSense SPIS
               </span>
             </div>
           )}

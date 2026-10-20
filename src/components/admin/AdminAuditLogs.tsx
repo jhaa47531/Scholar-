@@ -1,72 +1,78 @@
 import React, { useState, useMemo } from 'react';
-import { History, Search, Filter, ShieldCheck } from 'lucide-react';
+import { History, Search, Filter } from 'lucide-react';
 import { AuditLogEntry } from '../../types/domain.ts';
 import { StatusBadge } from '../common/StatusBadge.tsx';
 import { EmptyState } from '../common/EmptyState.tsx';
 
 interface AdminAuditLogsProps {
-  logs: AuditLogEntry[];
+  logs?: AuditLogEntry[];
+  auditLogs?: AuditLogEntry[];
+  onRefresh?: () => Promise<void> | void;
 }
 
-export const AdminAuditLogs: React.FC<AdminAuditLogsProps> = ({ logs }) => {
+export const AdminAuditLogs: React.FC<AdminAuditLogsProps> = ({ logs, auditLogs }) => {
+  const allLogs = logs || auditLogs || [];
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEntity, setSelectedEntity] = useState('ALL');
 
   const filteredLogs = useMemo(() => {
-    return logs.filter((log) => {
+    return allLogs.filter((log) => {
       const matchSearch =
         log.actorId.toLowerCase().includes(searchTerm.toLowerCase()) ||
         log.entityId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (log.reason && log.reason.toLowerCase().includes(searchTerm.toLowerCase()));
+        log.reason.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchEntity = selectedEntity === 'ALL' || log.entityType === selectedEntity;
 
       return matchSearch && matchEntity;
     });
-  }, [logs, searchTerm, selectedEntity]);
+  }, [allLogs, searchTerm, selectedEntity]);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-          <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-            <History className="w-5 h-5 text-amber-400" />
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <History className="w-5 h-5 text-indigo-600" />
             Immutable Compliance Audit Trail
           </h1>
-          <p className="mt-0.5 text-xs text-slate-400">
-            Cryptographically sealed event logs of faculty mark entries, sessional configurations, and dean-authorized corrections.
+          <p className="mt-0.5 text-xs text-slate-500">
+            Cryptographically sealed event logs of faculty mark entries, sessional configurations, enrollments, and dean-authorized operations.
           </p>
         </div>
 
-        <div className="text-xs font-mono px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
-          Recorded Events: <span className="font-bold text-amber-400 tabular-nums">{filteredLogs.length}</span>
+        <div className="text-xs font-mono px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 shadow-2xs">
+          Recorded Events: <span className="font-bold text-indigo-600 tabular-nums">{filteredLogs.length}</span>
         </div>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+      <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search by actor email, entity ID, or operation reason..."
-            className="w-full pl-9 pr-3 py-2 text-xs bg-slate-950 border border-slate-800 rounded-lg text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500/50"
+            className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:bg-white"
           />
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <Filter className="w-3.5 h-3.5 text-slate-500" />
+          <Filter className="w-3.5 h-3.5 text-slate-400" />
           <select
             value={selectedEntity}
             onChange={(e) => setSelectedEntity(e.target.value)}
-            className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none cursor-pointer"
+            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-indigo-500 focus:bg-white cursor-pointer"
           >
             <option value="ALL">All Entity Types</option>
             <option value="ASSESSMENT">Assessment Submissions</option>
             <option value="ASSIGNMENT">Faculty Assignments</option>
             <option value="SESSIONAL_CONFIG">Sessional Configurations</option>
+            <option value="ENROLLMENT">Enrollments</option>
+            <option value="USER">User & Course Structures</option>
           </select>
         </div>
       </div>
@@ -79,11 +85,11 @@ export const AdminAuditLogs: React.FC<AdminAuditLogsProps> = ({ logs }) => {
           description="No institutional audit events match the current filter parameters."
         />
       ) : (
-        <div className="rounded-xl bg-slate-900 border border-slate-800 overflow-hidden shadow-sm">
+        <div className="rounded-xl bg-white border border-slate-200 overflow-hidden shadow-xs">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-950/80 border-b border-slate-800 text-[11px] font-mono uppercase tracking-wider text-slate-400">
+                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-mono uppercase tracking-wider text-slate-500">
                   <th className="py-3 px-4">Timestamp</th>
                   <th className="py-3 px-4">Entity Type</th>
                   <th className="py-3 px-4">Action</th>
@@ -92,32 +98,34 @@ export const AdminAuditLogs: React.FC<AdminAuditLogsProps> = ({ logs }) => {
                   <th className="py-3 px-4">Audit Note & Reason</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/80">
+              <tbody className="divide-y divide-slate-100">
                 {filteredLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-850/50 transition-colors">
-                    <td className="py-3.5 px-4 font-mono text-slate-400 whitespace-nowrap">
-                      <div>{new Date(log.timestamp).toLocaleDateString()}</div>
-                      <div className="text-[10px] text-slate-500">
+                  <tr key={log.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="py-3.5 px-4 font-mono text-slate-500 whitespace-nowrap">
+                      <div className="font-medium text-slate-700">{new Date(log.timestamp).toLocaleDateString()}</div>
+                      <div className="text-[10px] text-slate-400">
                         {new Date(log.timestamp).toLocaleTimeString()}
                       </div>
                     </td>
                     <td className="py-3.5 px-4 font-mono">
-                      <span className="px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300 text-[11px]">
+                      <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[11px] font-medium border border-slate-200">
                         {log.entityType}
                       </span>
                     </td>
                     <td className="py-3.5 px-4">
                       <StatusBadge status={log.action} size="sm" />
                     </td>
-                    <td className="py-3.5 px-4 font-mono font-medium text-amber-400/90 truncate max-w-xs">
+                    <td className="py-3.5 px-4 font-mono text-indigo-700 font-semibold">
                       {log.entityId}
                     </td>
-                    <td className="py-3.5 px-4 font-mono text-slate-300">
-                      <div>{log.actorId}</div>
-                      <span className="text-[10px] text-slate-500 uppercase">{log.actorRole}</span>
+                    <td className="py-3.5 px-4">
+                      <div className="font-semibold text-slate-800">{log.actorId}</div>
+                      <div className="text-[10px] text-slate-400 font-mono uppercase">
+                        {log.actorRole}
+                      </div>
                     </td>
-                    <td className="py-3.5 px-4 text-slate-300 max-w-sm">
-                      <p className="line-clamp-2">{log.reason || 'Standard system write operation'}</p>
+                    <td className="py-3.5 px-4 text-slate-600 max-w-sm">
+                      {log.reason}
                     </td>
                   </tr>
                 ))}

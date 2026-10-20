@@ -72,7 +72,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
   const setQuickAccount = (quickEmail: string) => {
     setEmail(quickEmail);
-    setPassword('institutionalPass123!');
+    setPassword(quickEmail === 'jhaa47531@gmail.com' ? 'aditya' : 'institutionalPass123!');
   };
 
   return (
@@ -85,12 +85,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               <div className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
                 <GraduationCap className="w-4 h-4" />
               </div>
-              <h2 className="text-lg font-bold text-slate-900 tracking-tight">
-                ScholarSense Institutional Access
+              <h2 className="text-base font-bold text-slate-900 tracking-tight">
+                Global Institute of Information and Technology
               </h2>
             </div>
             <p className="mt-1 text-xs text-slate-500">
-              Sign in with institutional credentials or register a student / faculty profile.
+              ScholarSense SPIS — Sign in with institutional credentials or register a student / faculty profile.
             </p>
           </div>
           <button
@@ -137,16 +137,26 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             <span className="text-[11px] font-semibold text-indigo-900 block font-mono uppercase tracking-wide">
               Quick Institutional Profiles (Testing & Verification)
             </span>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <button
+                type="button"
+                onClick={() => setQuickAccount('jhaa47531@gmail.com')}
+                className="p-1.5 bg-white border border-indigo-200 hover:border-indigo-400 text-left rounded-lg text-[11px] text-slate-700 transition-colors cursor-pointer shadow-2xs"
+              >
+                <div className="font-bold text-indigo-700 flex items-center gap-1">
+                  <Shield className="w-3 h-3" /> Aditya (Admin)
+                </div>
+                <div className="text-[10px] text-slate-500 truncate">jhaa47531@gmail.com</div>
+              </button>
               <button
                 type="button"
                 onClick={() => setQuickAccount('admin@institution.edu')}
                 className="p-1.5 bg-white border border-indigo-200 hover:border-indigo-400 text-left rounded-lg text-[11px] text-slate-700 transition-colors cursor-pointer shadow-2xs"
               >
                 <div className="font-bold text-indigo-700 flex items-center gap-1">
-                  <Shield className="w-3 h-3" /> Admin
+                  <Shield className="w-3 h-3" /> Dean Vance
                 </div>
-                <div className="text-[10px] text-slate-500 truncate">Dean Eleanor</div>
+                <div className="text-[10px] text-slate-500 truncate">Institutional Dean</div>
               </button>
               <button
                 type="button"
@@ -166,7 +176,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 <div className="font-bold text-emerald-700 flex items-center gap-1">
                   <GraduationCap className="w-3 h-3" /> Student
                 </div>
-                <div className="text-[10px] text-slate-500 truncate">Aarav (BCA)</div>
+                <div className="text-[10px] text-slate-500 truncate">Aarav (BCA Sem 1)</div>
               </button>
             </div>
           </div>

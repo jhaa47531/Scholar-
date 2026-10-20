@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { BarChart3, TrendingUp, Layers, Award, CheckCircle2, ShieldAlert, ArrowUpRight } from 'lucide-react';
+import { BarChart3, TrendingUp, Layers, Award, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { CourseStructure, StudentProfile, SubjectMaster, SessionalConfig, AuditLogEntry } from '../../types/domain.ts';
 import { Academic3DBarChart, ChartDataItem } from '../common/Academic3DBarChart.tsx';
 import { Academic3DGauge } from '../common/Academic3DGauge.tsx';
@@ -63,25 +63,25 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#162740]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-          <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-amber-400" />
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-indigo-600" />
             Institutional Performance Analytics
           </h1>
-          <p className="mt-0.5 text-xs text-slate-400">
+          <p className="mt-0.5 text-xs text-slate-500">
             Real-time cohort distribution, curriculum weight analysis, and evaluation compliance across departments.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
-            Active Programs: <strong className="text-amber-400 font-bold">{courses.length}</strong>
+          <span className="text-xs font-mono px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 shadow-2xs">
+            Active Programs: <strong className="text-indigo-600 font-bold">{courses.length}</strong>
           </span>
         </div>
       </div>
 
-      {/* 3D KPI Strip */}
+      {/* KPI Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           title="TOTAL COHORT CAPACITY"
@@ -113,27 +113,26 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({
         />
       </div>
 
-      {/* 3D Visualizations Grid */}
+      {/* Visualizations Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main 3D Department Cohort Comparator Bar Chart */}
         <div className="lg:col-span-2">
           <Academic3DBarChart
             title="Degree Program Enrollment Distribution (% of Total Cohort)"
-            subtitle="Isometric 3D comparison against institutional program parity benchmark"
+            subtitle="Comparison against institutional program parity benchmark"
             data={chartData}
             benchmarkLabel="Parity Benchmark"
             height={280}
           />
         </div>
 
-        {/* 3D Radial Gauges for Assessment Governance */}
-        <div className="surface-navy rounded-xl p-5 border border-[#192b45] flex flex-col justify-between">
+        {/* Governance Gauge Card */}
+        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-xs flex flex-col justify-between">
           <div>
-            <h3 className="text-sm font-bold text-white tracking-tight flex items-center gap-2 mb-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <h3 className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-2 mb-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
               Governance Health Index
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-500">
               Composite compliance rating based on verified faculty submissions and zero pending blockers.
             </p>
           </div>
@@ -149,27 +148,27 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({
             />
           </div>
 
-          <div className="pt-3 border-t border-slate-800 text-[11px] text-slate-400 flex items-center justify-between font-mono">
+          <div className="pt-3 border-t border-slate-100 text-[11px] text-slate-500 flex items-center justify-between font-mono">
             <span>Audit Trail Parity: 100%</span>
-            <span className="text-emerald-400 font-bold">Compliant</span>
+            <span className="text-emerald-700 font-bold">Compliant</span>
           </div>
         </div>
       </div>
 
       {/* Program Breakdown Detailed Table */}
-      <div className="surface-navy rounded-xl border border-[#192b45] overflow-hidden">
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-white tracking-tight">
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+        <div className="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+          <h3 className="text-sm font-bold text-slate-900 tracking-tight">
             Academic Program Curriculum & Cohort Matrix
           </h3>
-          <span className="text-xs text-slate-400 font-mono">
+          <span className="text-xs text-slate-500 font-mono">
             {courseAnalytics.length} Programs Registered
           </span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-900/90 text-slate-400 font-mono uppercase text-[11px] border-b border-slate-800">
+            <thead className="bg-slate-50 text-slate-500 font-mono uppercase text-[11px] border-b border-slate-200">
               <tr>
                 <th className="px-5 py-3">Course Code</th>
                 <th className="px-5 py-3">Program Name</th>
@@ -180,29 +179,29 @@ export const AdminAnalytics: React.FC<AdminAnalyticsProps> = ({
                 <th className="px-5 py-3 text-center">Program Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800 font-medium">
+            <tbody className="divide-y divide-slate-100 font-medium">
               {courseAnalytics.map(({ course, studentCount, subjectCount, totalCredits }) => (
-                <tr key={course.id} className="hover:bg-slate-850/50 transition-colors">
-                  <td className="px-5 py-3.5 font-mono font-bold text-amber-400">
+                <tr key={course.id} className="hover:bg-slate-50/80 transition-colors">
+                  <td className="px-5 py-3.5 font-mono font-bold text-indigo-700">
                     {course.courseCode}
                   </td>
-                  <td className="px-5 py-3.5 text-white">
+                  <td className="px-5 py-3.5 text-slate-900">
                     {course.name}
                   </td>
-                  <td className="px-5 py-3.5 text-slate-400 font-mono">
+                  <td className="px-5 py-3.5 text-slate-500 font-mono">
                     {course.durationYears} Years ({course.totalSemesters} Semesters)
                   </td>
-                  <td className="px-5 py-3.5 text-right font-mono font-bold text-slate-100 tabular-nums">
+                  <td className="px-5 py-3.5 text-right font-mono font-bold text-slate-900 tabular-nums">
                     {studentCount}
                   </td>
-                  <td className="px-5 py-3.5 text-right font-mono text-slate-300 tabular-nums">
+                  <td className="px-5 py-3.5 text-right font-mono text-slate-700 tabular-nums">
                     {subjectCount}
                   </td>
-                  <td className="px-5 py-3.5 text-right font-mono text-amber-300 font-bold tabular-nums">
+                  <td className="px-5 py-3.5 text-right font-mono text-indigo-600 font-bold tabular-nums">
                     {totalCredits}
                   </td>
                   <td className="px-5 py-3.5 text-center">
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold">
                       ACTIVE
                     </span>
                   </td>

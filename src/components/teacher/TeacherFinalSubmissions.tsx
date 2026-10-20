@@ -1,86 +1,94 @@
 import React, { useState, useEffect } from 'react';
-import { FileCheck2, Lock, Eye, CheckCircle2, ShieldCheck, ArrowRight } from 'lucide-react';
-import { AcademicSession, SubjectMaster, TeacherAssignment } from '../../types/domain.ts';
-import { api } from '../../services/api.ts';
+import { FileCheck2, Lock, Eye, AlertCircle } from 'lucide-react';
+import { SubjectMaster, TeacherAssignment } from '../../types/domain.ts';
 import { EmptyState } from '../common/EmptyState.tsx';
 import { LoadingSkeleton } from '../common/LoadingSkeleton.tsx';
+import { api } from '../../services/api.ts';
 
 interface TeacherFinalSubmissionsProps {
   assignments: TeacherAssignment[];
   subjects: SubjectMaster[];
-  sessions: AcademicSession[];
   activeSessionId: string;
   onOpenMarksEntry: (subjectId: string) => void;
+}
+
+interface FinalSummaryItem {
+  subject: SubjectMaster;
+  sessionalNumber: number;
+  finalCount: number;
+  totalStudents: number;
+  submittedAt: string;
 }
 
 export const TeacherFinalSubmissions: React.FC<TeacherFinalSubmissionsProps> = ({
   assignments,
   subjects,
-  sessions,
   activeSessionId,
   onOpenMarksEntry,
 }) => {
-  const subjectMap = new Map(subjects.map((s) => [s.id, s]));
-  const myAssignedSubjects = assignments.map((a) => subjectMap.get(a.subjectId)).filter(Boolean) as SubjectMaster[];
-
-  const [loading, setLoading] = useState(false);
-  const [finalSummaries, setFinalSummaries] = useState<any[]>([]);
+  const [finalSummaries, setFinalSummaries] = useState<FinalSummaryItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadFinalized();
-  }, [assignments, activeSessionId]);
+    loadSubmissions();
+  }, [assignments, subjects, activeSessionId]);
 
-  const loadFinalized = async () => {
+  const loadSubmissions = async () => {
     setLoading(true);
-    try {
-      const summaries: any[] = [];
-      for (const sub of myAssignedSubjects) {
-        for (const sessionalNum of [1, 2]) {
-          const res = await api.getTeacherSheet(sub.id, activeSessionId, sessionalNum);
-          if (res.success && res.data) {
-            const finalRows = res.data.rows.filter((r: any) => r.assessment.submissionStatus === 'FINAL_SUBMITTED');
-            if (finalRows.length > 0) {
-              summaries.push({
+    const subjectMap = new Map(subjects.map((s) => [s.id, s]));
+    const results: FinalSummaryItem[] = [];
+
+    for (const asg of assignments) {
+      const sub = subjectMap.get(asg.subjectId);
+      if (!sub) continue;
+
+      for (const sessionalNum of [1, 2]) {
+        try {
+          const res = await api.getTeacherSheet(sub.id, activeSessionId || 'sess_2025_26', sessionalNum);
+          if (res.success && res.data && res.data.rows) {
+            const finalRecords = res.data.rows.filter((r: any) => r.status === 'FINAL_SUBMITTED');
+            if (finalRecords.length > 0) {
+              results.push({
                 subject: sub,
                 sessionalNumber: sessionalNum,
-                finalCount: finalRows.length,
+                finalCount: finalRecords.length,
                 totalStudents: res.data.rows.length,
-                submittedAt: finalRows[0]?.assessment?.finalSubmittedAt || new Date().toISOString(),
+                submittedAt: finalRecords[0]?.submittedAt || new Date().toISOString(),
               });
             }
           }
+        } catch {
+          // continue
         }
       }
-      setFinalSummaries(summaries);
-    } catch (err) {
-      console.error('Error fetching final summaries:', err);
-    } finally {
-      setLoading(false);
     }
+
+    setFinalSummaries(results);
+    setLoading(false);
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#162740]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-          <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-            <FileCheck2 className="w-5 h-5 text-emerald-400" />
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+            <FileCheck2 className="w-5 h-5 text-indigo-600" />
             Final Submitted Marks & Published Records
           </h1>
-          <p className="mt-0.5 text-xs text-slate-400">
+          <p className="mt-0.5 text-xs text-slate-500">
             Officially finalized evaluation sheets. These marks are verified, locked, and immediately visible to enrolled students.
           </p>
         </div>
 
-        <span className="text-xs font-mono px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300">
-          Finalized Batches: <strong className="text-emerald-400 font-bold">{finalSummaries.length}</strong>
+        <span className="text-xs font-mono px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 shadow-2xs">
+          Finalized Batches: <strong className="text-emerald-600 font-bold">{finalSummaries.length}</strong>
         </span>
       </div>
 
       {/* Submissions Grid */}
       {loading ? (
-        <LoadingSkeleton count={3} height="h-24" />
+        <LoadingSkeleton rows={3} />
       ) : finalSummaries.length === 0 ? (
         <EmptyState
           title="No Finalized Submissions Yet"
@@ -92,43 +100,43 @@ export const TeacherFinalSubmissions: React.FC<TeacherFinalSubmissionsProps> = (
           {finalSummaries.map((item, idx) => (
             <div
               key={idx}
-              className="p-5 rounded-xl surface-navy card-3d border border-emerald-500/25 flex flex-col justify-between gap-4"
+              className="p-5 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between gap-4"
             >
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-mono font-bold text-emerald-400 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+                  <span className="text-xs font-mono font-bold text-emerald-800 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200">
                     {item.subject.subjectCode}
                   </span>
-                  <div className="flex items-center gap-1.5 text-xs text-emerald-300 font-mono">
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-mono font-semibold">
                     <Lock className="w-3.5 h-3.5" />
                     <span>Locked & Published</span>
                   </div>
                 </div>
 
-                <h3 className="text-base font-semibold text-white mt-2.5">
+                <h3 className="text-base font-semibold text-slate-900 mt-2.5">
                   {item.subject.name}
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-500 mt-0.5">
                   Degree: {item.subject.courseId.toUpperCase()} · Semester {item.subject.semester} · Sessional {item.sessionalNumber}
                 </p>
 
-                <div className="mt-4 p-3 rounded-lg bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs font-mono">
-                  <span className="text-slate-400">Enrolled Student Cohort:</span>
-                  <span className="font-bold text-emerald-400">
+                <div className="mt-4 p-3 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between text-xs font-mono">
+                  <span className="text-slate-500">Enrolled Student Cohort:</span>
+                  <span className="font-bold text-emerald-700">
                     {item.finalCount} of {item.totalStudents} Published
                   </span>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
                 <span className="text-[11px] text-slate-400 font-mono">
                   Finalized on {new Date(item.submittedAt).toLocaleDateString()}
                 </span>
                 <button
                   onClick={() => onOpenMarksEntry(item.subject.id)}
-                  className="px-3 py-1.5 text-xs font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+                  className="px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-indigo-600 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
                 >
-                  <Eye className="w-3.5 h-3.5 text-amber-400" />
+                  <Eye className="w-3.5 h-3.5 text-indigo-600" />
                   View Sheet
                 </button>
               </div>

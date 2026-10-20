@@ -26,6 +26,7 @@ import { api, authFetch, getApiAuthToken, setApiAuthToken } from './services/api
 import { Sidebar } from './components/layout/Sidebar.tsx';
 import { TopBar } from './components/layout/TopBar.tsx';
 import { LoginModal } from './components/auth/LoginModal.tsx';
+import { LoginPage } from './components/auth/LoginPage.tsx';
 import { GlobalSearchModal } from './components/common/GlobalSearchModal.tsx';
 import { NotificationDrawer } from './components/common/NotificationDrawer.tsx';
 
@@ -192,6 +193,26 @@ export default function App() {
       setAuthError('Sign-in failed. Check your email and password, then try again.');
     } finally {
       setLoginPassword('');
+      setAuthLoading(false);
+    }
+  };
+
+  const handleRegister = async (payload: any) => {
+    setAuthLoading(true);
+    setAuthError(null);
+    try {
+      const data = await api.register(payload);
+      if (data.success && data.token) {
+        setApiAuthToken(data.token);
+        setAuthToken(data.token);
+        setIsLoginModalOpen(false);
+        await verifySession(data.token);
+      } else {
+        setAuthError(data.message || 'Registration failed.');
+      }
+    } catch (err: any) {
+      setAuthError(err.message || 'Registration request error.');
+    } finally {
       setAuthLoading(false);
     }
   };
@@ -397,83 +418,33 @@ export default function App() {
     }
   };
 
-  // If user is not authenticated, render the premium Institutional Login Portal
-  if (!currentUser && !authLoading) {
+  // Loading state during session verification
+  if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#060d1a] flex flex-col justify-center items-center p-4 selection:bg-amber-500/30 selection:text-amber-200">
-        <div className="max-w-md w-full surface-navy rounded-2xl p-6 sm:p-8 border border-[#192b45] shadow-2xl space-y-6 card-3d">
-          <div className="text-center space-y-2">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-600 to-amber-400 mx-auto flex items-center justify-center shadow-lg shadow-amber-500/20 text-slate-950 font-bold">
-              <GraduationCap className="w-7 h-7" />
-            </div>
-            <h1 className="text-xl font-extrabold text-white tracking-tight">
-              ScholarSense Academic Portal
-            </h1>
-            <p className="text-xs text-slate-400">
-              Student Performance Intelligence System (SPIS)
-            </p>
-          </div>
-
-          <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-300 flex items-start gap-2.5">
-            <Lock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-            <span>
-              Sign in with your Firebase email and password. Your institutional role and profile are verified by the server.
-            </span>
-          </div>
-
-          {authError && (
-            <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300">
-              {authError}
-            </div>
-          )}
-
-          <div className="space-y-4">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (loginEmail.trim() && loginPassword) {
-                  handleLogin(loginEmail.trim(), loginPassword);
-                }
-              }}
-              className="space-y-3"
-            >
-              <label className="text-xs font-semibold text-slate-300 block">
-                Institutional account:
-              </label>
-              <input
-                type="email"
-                value={loginEmail}
-                onChange={(e) => setLoginEmail(e.target.value)}
-                autoComplete="username"
-                required
-                placeholder="Institutional email"
-                className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
-              />
-              <input
-                type="password"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                autoComplete="current-password"
-                required
-                placeholder="Password"
-                className="w-full bg-slate-900 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
-              />
-              <button
-                type="submit"
-                disabled={authLoading || !loginEmail.trim() || !loginPassword}
-                className="w-full px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition-all disabled:opacity-50 cursor-pointer shadow-sm"
-              >
-                {authLoading ? 'Signing in...' : 'Sign In'}
-              </button>
-            </form>
-          </div>
+      <div className="min-h-screen bg-[#F7F9FC] flex flex-col justify-center items-center p-4">
+        <div className="flex items-center gap-3 text-slate-700 bg-white px-5 py-3 rounded-2xl border border-slate-200 shadow-xs">
+          <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs font-semibold text-slate-700">Verifying ScholarSense session...</span>
         </div>
       </div>
     );
   }
 
+  // If user is not authenticated, render the single institutional Login Page
+  if (!currentUser) {
+    return (
+      <LoginPage
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+        isLoading={authLoading}
+        errorMessage={authError}
+        courses={courses}
+      />
+    );
+  }
+
   return (
-    <div className="min-h-screen flex bg-[#060d1a] text-slate-100 overflow-hidden font-sans">
+    <div className="min-h-screen flex bg-[#F7F9FC] text-slate-800 overflow-hidden font-sans">
       {/* Sidebar Navigation */}
       <Sidebar
         currentRole={currentUser?.role || UserRole.ADMIN}
@@ -536,16 +507,16 @@ export default function App() {
                 />
               )}
               {activePage === 'students' && (
-                <AdminStudents students={students} courses={courses} />
+                <AdminStudents students={students} courses={courses} onRefresh={fetchMasterData} />
               )}
               {activePage === 'faculty' && (
-                <AdminFaculty faculty={faculty} />
+                <AdminFaculty faculty={faculty} onRefresh={fetchMasterData} />
               )}
               {activePage === 'courses' && (
-                <AdminCourses courses={courses} subjects={subjects} />
+                <AdminCourses courses={courses} subjects={subjects} onRefresh={fetchMasterData} />
               )}
               {activePage === 'subjects' && (
-                <AdminSubjects subjects={subjects} courses={courses} />
+                <AdminSubjects subjects={subjects} courses={courses} onRefresh={fetchMasterData} />
               )}
               {activePage === 'assignments' && (
                 <AdminAssignments

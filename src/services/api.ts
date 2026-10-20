@@ -530,7 +530,7 @@ export const api = {
     }
   },
 
-  // Academic Management Creation
+  // Academic Management CRUD
   createCourse: async (payload: { courseCode: string; name: string; totalSemesters: number; durationYears: number }) => {
     try {
       const res = await authFetch('/api/academic/courses', {
@@ -538,6 +538,29 @@ export const api = {
         body: JSON.stringify(payload),
       });
       return await safeParseJson<{ success: boolean; data?: any; message?: string }>(res, { success: false, message: 'Failed to create course' });
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  updateCourse: async (id: string, payload: Partial<CourseStructure>) => {
+    try {
+      const res = await authFetch(`/api/academic/courses/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+      return await safeParseJson<{ success: boolean; data?: any; message?: string }>(res, { success: false, message: 'Failed to update course' });
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  deleteCourse: async (id: string) => {
+    try {
+      const res = await authFetch(`/api/academic/courses/${id}`, {
+        method: 'DELETE',
+      });
+      return await safeParseJson<{ success: boolean; action?: string; message?: string; data?: any }>(res, { success: false, message: 'Failed to delete course' });
     } catch (err: any) {
       return { success: false, message: err.message };
     }
@@ -555,6 +578,29 @@ export const api = {
     }
   },
 
+  updateSubject: async (id: string, payload: Partial<SubjectMaster>) => {
+    try {
+      const res = await authFetch(`/api/academic/subjects/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+      return await safeParseJson<{ success: boolean; data?: any; message?: string }>(res, { success: false, message: 'Failed to update subject' });
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  deleteSubject: async (id: string) => {
+    try {
+      const res = await authFetch(`/api/academic/subjects/${id}`, {
+        method: 'DELETE',
+      });
+      return await safeParseJson<{ success: boolean; action?: string; message?: string; data?: any }>(res, { success: false, message: 'Failed to delete subject' });
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
   createStudent: async (payload: { name: string; email: string; rollNo: string; enrollmentNo: string; courseId: string; currentSemester: number; admissionSessionId?: string }) => {
     try {
       const res = await authFetch('/api/academic/students', {
@@ -562,6 +608,42 @@ export const api = {
         body: JSON.stringify(payload),
       });
       return await safeParseJson<{ success: boolean; data?: any; message?: string }>(res, { success: false, message: 'Failed to create student' });
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  updateStudent: async (id: string, payload: Partial<StudentProfile>) => {
+    try {
+      const res = await authFetch(`/api/academic/students/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+      return await safeParseJson<{ success: boolean; data?: any; message?: string }>(res, { success: false, message: 'Failed to update student' });
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  createTeacher: async (payload: { name: string; email: string; employeeCode?: string; department?: string; designation?: string }) => {
+    try {
+      const res = await authFetch('/api/academic/teachers', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      return await safeParseJson<{ success: boolean; data?: any; message?: string }>(res, { success: false, message: 'Failed to create faculty member' });
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  updateTeacher: async (id: string, payload: Partial<TeacherProfile>) => {
+    try {
+      const res = await authFetch(`/api/academic/teachers/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+      return await safeParseJson<{ success: boolean; data?: any; message?: string }>(res, { success: false, message: 'Failed to update faculty member' });
     } catch (err: any) {
       return { success: false, message: err.message };
     }

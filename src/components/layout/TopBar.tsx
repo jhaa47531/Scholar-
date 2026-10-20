@@ -85,6 +85,13 @@ export const TopBar: React.FC<TopBarProps> = ({
 
       {/* Zone 3: Academic Session, Notifications & Profile Menu */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        {/* Institution Badge */}
+        <div className="hidden lg:flex items-center gap-1.5 text-[11px] text-slate-700 font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-100">
+          <span className="text-indigo-600 font-bold">GIIT</span>
+          <span className="text-slate-400 font-normal">|</span>
+          <span className="truncate max-w-[200px]">Global Institute of Information and Technology</span>
+        </div>
+
         {/* Persistence Indicator */}
         <div className="hidden xl:flex items-center gap-1.5 text-[11px] text-slate-600 font-mono px-2 py-1 rounded bg-slate-50 border border-slate-200">
           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />

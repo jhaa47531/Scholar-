@@ -115,11 +115,41 @@ export class CloudFirestoreAcademicRepository implements IAcademicRepository {
 
       // 3. BCA & BTech Subjects
       const defaultSubjects: SubjectMaster[] = [
+        // BCA Semester 1
         { id: 'sub_bca101', subjectCode: 'BCA-101', name: 'Computer Fundamentals & Problem Solving', courseId: 'crs_bca', semester: 1, isRequired: true, credits: 4, isActive: true, createdAt: new Date().toISOString() },
         { id: 'sub_bca102', subjectCode: 'BCA-102', name: 'Programming in C Language', courseId: 'crs_bca', semester: 1, isRequired: true, credits: 4, isActive: true, createdAt: new Date().toISOString() },
         { id: 'sub_bca103', subjectCode: 'BCA-103', name: 'Mathematical Foundations for Computing', courseId: 'crs_bca', semester: 1, isRequired: true, credits: 3, isActive: true, createdAt: new Date().toISOString() },
         { id: 'sub_bca104_el1', subjectCode: 'BCA-104A', name: 'Technical Communication & Soft Skills', courseId: 'crs_bca', semester: 1, isRequired: false, electiveGroup: 'EL_GRP_1', credits: 3, isActive: true, createdAt: new Date().toISOString() },
         { id: 'sub_bca104_el2', subjectCode: 'BCA-104B', name: 'Organizational Behavior & Ethics', courseId: 'crs_bca', semester: 1, isRequired: false, electiveGroup: 'EL_GRP_1', credits: 3, isActive: true, createdAt: new Date().toISOString() },
+        // BCA Semester 2
+        { id: 'sub_bca201', subjectCode: 'BCA-201', name: 'Data Structures using C', courseId: 'crs_bca', semester: 2, isRequired: true, credits: 4, isActive: true, createdAt: new Date().toISOString() },
+        { id: 'sub_bca202', subjectCode: 'BCA-202', name: 'Object Oriented Programming in C++', courseId: 'crs_bca', semester: 2, isRequired: true, credits: 4, isActive: true, createdAt: new Date().toISOString() },
+        { id: 'sub_bca203', subjectCode: 'BCA-203', name: 'Digital Electronics & Computer Architecture', courseId: 'crs_bca', semester: 2, isRequired: true, credits: 4, isActive: true, createdAt: new Date().toISOString() },
+        { id: 'sub_bca204_el1', subjectCode: 'BCA-204A', name: 'Environmental Studies & Green Computing', courseId: 'crs_bca', semester: 2, isRequired: false, electiveGroup: 'EL_GRP_2', credits: 3, isActive: true, createdAt: new Date().toISOString() },
+        { id: 'sub_bca204_el2', subjectCode: 'BCA-204B', name: 'Disaster Management & Cyber Safety', courseId: 'crs_bca', semester: 2, isRequired: false, electiveGroup: 'EL_GRP_2', credits: 3, isActive: true, createdAt: new Date().toISOString() },
+        // BCA Semester 3
+        { id: 'sub_bca301', subjectCode: 'BCA-301', name: 'Database Management Systems & SQL', courseId: 'crs_bca', semester: 3, isRequired: true, credits: 4, isActive: true, createdAt: new Date().toISOString() },
+        { id: 'sub_bca302', subjectCode: 'BCA-302', name: 'Operating System Principles & Unix', courseId: 'crs_bca', semester: 3, isRequired: true, credits: 4, isActive: true, createdAt: new Date().toISOString() },
+        { id: 'sub_bca303', subjectCode: 'BCA-303', name: 'Java Programming & Application Development', courseId: 'crs_bca', semester: 3, isRequired: true, credits: 4, isActive: true, createdAt: new Date().toISOString() },
+        { id: 'sub_bca304', subjectCode: 'BCA-304', name: 'Discrete Mathematics & Graph Theory', courseId: 'crs_bca', semester: 3, isRequired: true, credits: 3, isActive: true, createdAt: new Date().toISOString() },
+        // BCA Semester 4
+        { id: 'sub_bca401', subjectCode: 'BCA-401', name: 'Computer Networks & TCP/IP Architecture', courseId: 'crs_bca', semester: 4, isRequired: true, credits: 4, isActive: true, createdAt: new Date().toISOString() },
+        { id: 'sub_bca402', subjectCode: 'BCA-402', name: 'Web Development & Client-Side Scripting', courseId: 'crs_bca', semester: 4, isRequired: true, credits: 4, isActive: true, createdAt: new Date().toISOString() },
+        { id: 'sub_bca403', subjectCode: 'BCA-403', name: 'Software Engineering & Agile Methodologies', courseId: 'crs_bca', semester: 4, isRequired: true, credits: 4, isActive: true, createdAt: new Date().toISOString() },
+        { id: 'sub_bca404', subjectCode: 'BCA-404', name: 'Python for Computing & Scripting', courseId: 'crs_bca', semester: 4, isRequired: true, credits: 3, isActive: true, createdAt: new Date().toISOString() },
+        // BCA Semester 5
+        { id: 'sub_bca501', subjectCode: 'BCA-501', name: 'Cloud Computing Infrastructure & Virtualization', courseId: 'crs_bca', semester: 5, isRequired: true, credits: 4, isActive: true, createdAt: new Date().toISOString() },
+        { id: 'sub_bca502', subjectCode: 'BCA-502', name: 'Artificial Intelligence & Machine Learning Basics', courseId: 'crs_bca', semester: 5, isRequired: true, credits: 4, isActive: true, createdAt: new Date().toISOString() },
+        { id: 'sub_bca503', subjectCode: 'BCA-503', name: 'Information & Network Security', courseId: 'crs_bca', semester: 5, isRequired: true, credits: 4, isActive: true, createdAt: new Date().toISOString() },
+        { id: 'sub_bca504_el1', subjectCode: 'BCA-504A', name: 'Mobile Application Development (Flutter/Android)', courseId: 'crs_bca', semester: 5, isRequired: false, electiveGroup: 'EL_GRP_3', credits: 3, isActive: true, createdAt: new Date().toISOString() },
+        { id: 'sub_bca504_el2', subjectCode: 'BCA-504B', name: 'Big Data Fundamentals & NoSQL', courseId: 'crs_bca', semester: 5, isRequired: false, electiveGroup: 'EL_GRP_3', credits: 3, isActive: true, createdAt: new Date().toISOString() },
+        // BCA Semester 6
+        { id: 'sub_bca601', subjectCode: 'BCA-601', name: 'Full Stack Web Architecture & APIs', courseId: 'crs_bca', semester: 6, isRequired: true, credits: 4, isActive: true, createdAt: new Date().toISOString() },
+        { id: 'sub_bca602', subjectCode: 'BCA-602', name: 'Major Capstone Project & Dissertation', courseId: 'crs_bca', semester: 6, isRequired: true, credits: 6, isActive: true, createdAt: new Date().toISOString() },
+        { id: 'sub_bca603', subjectCode: 'BCA-603', name: 'Professional Seminar & Research Methodology', courseId: 'crs_bca', semester: 6, isRequired: true, credits: 2, isActive: true, createdAt: new Date().toISOString() },
+        { id: 'sub_bca604_el1', subjectCode: 'BCA-604A', name: 'DevOps & Continuous Integration Practices', courseId: 'crs_bca', semester: 6, isRequired: false, electiveGroup: 'EL_GRP_4', credits: 3, isActive: true, createdAt: new Date().toISOString() },
+        { id: 'sub_bca604_el2', subjectCode: 'BCA-604B', name: 'Internet of Things (IoT) & Embedded Sensors', courseId: 'crs_bca', semester: 6, isRequired: false, electiveGroup: 'EL_GRP_4', credits: 3, isActive: true, createdAt: new Date().toISOString() },
+        // B.Tech
         { id: 'sub_bt101', subjectCode: 'BT-CS101', name: 'Advanced Engineering Mathematics', courseId: 'crs_btech', semester: 1, isRequired: true, credits: 4, isActive: true, createdAt: new Date().toISOString() },
         { id: 'sub_bt102', subjectCode: 'BT-CS102', name: 'Data Structures and Algorithms', courseId: 'crs_btech', semester: 1, isRequired: true, credits: 4, isActive: true, createdAt: new Date().toISOString() },
       ];
@@ -196,6 +226,18 @@ export class CloudFirestoreAcademicRepository implements IAcademicRepository {
     return course;
   }
 
+  async updateCourse(id: string, updates: Partial<CourseStructure>): Promise<CourseStructure> {
+    const docRef = this.db.collection('courseStructures').doc(id);
+    await docRef.set(updates, { merge: true });
+    const updated = await docRef.get();
+    return updated.data() as CourseStructure;
+  }
+
+  async deleteCourse(id: string): Promise<boolean> {
+    await this.db.collection('courseStructures').doc(id).delete();
+    return true;
+  }
+
   async getSubjects(courseId?: string, semester?: number): Promise<SubjectMaster[]> {
     let query: FirebaseFirestore.Query = this.db.collection('subjects');
     if (courseId) query = query.where('courseId', '==', courseId);
@@ -212,6 +254,18 @@ export class CloudFirestoreAcademicRepository implements IAcademicRepository {
   async createSubject(subject: SubjectMaster): Promise<SubjectMaster> {
     await this.db.collection('subjects').doc(subject.id).set(subject);
     return subject;
+  }
+
+  async updateSubject(id: string, updates: Partial<SubjectMaster>): Promise<SubjectMaster> {
+    const docRef = this.db.collection('subjects').doc(id);
+    await docRef.set(updates, { merge: true });
+    const updated = await docRef.get();
+    return updated.data() as SubjectMaster;
+  }
+
+  async deleteSubject(id: string): Promise<boolean> {
+    await this.db.collection('subjects').doc(id).delete();
+    return true;
   }
 
   async getStudents(courseId?: string, semester?: number): Promise<StudentProfile[]> {
@@ -237,6 +291,18 @@ export class CloudFirestoreAcademicRepository implements IAcademicRepository {
     return student;
   }
 
+  async updateStudent(id: string, updates: Partial<StudentProfile>): Promise<StudentProfile> {
+    const docRef = this.db.collection('students').doc(id);
+    await docRef.set(updates, { merge: true });
+    const updated = await docRef.get();
+    return updated.data() as StudentProfile;
+  }
+
+  async deleteStudent(id: string): Promise<boolean> {
+    await this.db.collection('students').doc(id).delete();
+    return true;
+  }
+
   async getTeachers(): Promise<TeacherProfile[]> {
     const snap = await this.db.collection('teachers').get();
     return snap.docs.map((d) => d.data() as TeacherProfile);
@@ -255,6 +321,18 @@ export class CloudFirestoreAcademicRepository implements IAcademicRepository {
   async createTeacher(teacher: TeacherProfile): Promise<TeacherProfile> {
     await this.db.collection('teachers').doc(teacher.id).set(teacher);
     return teacher;
+  }
+
+  async updateTeacher(id: string, updates: Partial<TeacherProfile>): Promise<TeacherProfile> {
+    const docRef = this.db.collection('teachers').doc(id);
+    await docRef.set(updates, { merge: true });
+    const updated = await docRef.get();
+    return updated.data() as TeacherProfile;
+  }
+
+  async deleteTeacher(id: string): Promise<boolean> {
+    await this.db.collection('teachers').doc(id).delete();
+    return true;
   }
 
   async getTeacherAssignments(teacherId?: string, sessionId?: string): Promise<TeacherAssignment[]> {

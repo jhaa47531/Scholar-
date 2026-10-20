@@ -20,23 +20,31 @@ export interface IAcademicRepository {
   getCourses(): Promise<CourseStructure[]>;
   getCourseById(id: string): Promise<CourseStructure | null>;
   createCourse(course: CourseStructure): Promise<CourseStructure>;
+  updateCourse(id: string, updates: Partial<CourseStructure>): Promise<CourseStructure>;
+  deleteCourse(id: string): Promise<boolean>;
 
   // Subjects
   getSubjects(courseId?: string, semester?: number): Promise<SubjectMaster[]>;
   getSubjectById(id: string): Promise<SubjectMaster | null>;
   createSubject(subject: SubjectMaster): Promise<SubjectMaster>;
+  updateSubject(id: string, updates: Partial<SubjectMaster>): Promise<SubjectMaster>;
+  deleteSubject(id: string): Promise<boolean>;
 
   // Students
   getStudents(courseId?: string, semester?: number): Promise<StudentProfile[]>;
   getStudentById(id: string): Promise<StudentProfile | null>;
   getStudentByUserId(userId: string): Promise<StudentProfile | null>;
   createStudent(student: StudentProfile): Promise<StudentProfile>;
+  updateStudent(id: string, updates: Partial<StudentProfile>): Promise<StudentProfile>;
+  deleteStudent(id: string): Promise<boolean>;
 
   // Teachers
   getTeachers(): Promise<TeacherProfile[]>;
   getTeacherById(id: string): Promise<TeacherProfile | null>;
   getTeacherByUserId(userId: string): Promise<TeacherProfile | null>;
   createTeacher(teacher: TeacherProfile): Promise<TeacherProfile>;
+  updateTeacher(id: string, updates: Partial<TeacherProfile>): Promise<TeacherProfile>;
+  deleteTeacher(id: string): Promise<boolean>;
 
   // Teacher Assignments
   getTeacherAssignments(teacherId?: string, sessionId?: string): Promise<TeacherAssignment[]>;
